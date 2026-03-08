@@ -1,0 +1,11 @@
+{
+  "display_name": "Alertivo User",
+  "onboarding_completed": false,
+  "simple_mode": true,
+  "autostart_enabled": false,
+  "close_to_tray": false,
+  "intro_enabled": true,
+  "preferred_source": "",
+  "created_at": "",
+  "updated_at": ""
+}

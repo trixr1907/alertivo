@@ -1,0 +1,92 @@
+database_path: data/alerts.sqlite
+log_level: INFO
+user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Alertivo/0.1
+enable_restock_alerts: true
+new_listing_reference_min_age_seconds: 60
+
+telegram:
+  bot_token: ${TELEGRAM_BOT_TOKEN}
+  chat_id: ${TELEGRAM_CHAT_ID}
+
+discord:
+  webhook_url: ${DISCORD_WEBHOOK_URL}
+
+windows:
+  enabled: true
+  app_id: Alertivo
+
+sound:
+  enabled: true
+  # Beispiel: C:\Windows\Media\Alarm01.wav
+  sound_file: ${ALERT_SOUND_FILE}
+
+webhook:
+  enabled: false
+  host: 127.0.0.1
+  port: 8787
+  path: /webhook/distill
+  token: ${WEBHOOK_TOKEN}
+
+sources:
+  - name: geizhals_flint2
+    type: http
+    enabled: true
+    url: https://geizhals.de/gl-inet-flint-2-gl-mt6000-a3168078.html
+    interval_seconds: 90
+    timeout_seconds: 20
+    shop: geizhals
+    source: geizhals
+    scope: aggregator
+    product_hint: glinet-flint-2
+    parser:
+      mode: single
+      title_selector: h1.variant__header__headline
+      price_selector: "#pricerange-min .gh_price, .offer__price .gh_price"
+      stock_selector: ".offer__delivery-time, #pricerange-no-offers"
+      stock_in_texts: ["Auf Lager", "lagernd", "verfügbar"]
+      stock_out_texts: ["Derzeit keine Angebote", "ausverkauft", "nicht verfügbar"]
+
+  - name: geizhals_rtx5070ti_gigabyte_example
+    type: http
+    enabled: true
+    url: https://geizhals.de/gigabyte-geforce-rtx-5070-ti-eagle-oc-sff-16g-gv-n507teagle-oc-16gd-a3381842.html
+    interval_seconds: 90
+    timeout_seconds: 20
+    shop: geizhals
+    source: geizhals
+    scope: aggregator
+    product_hint: rtx-5070-ti
+    parser:
+      mode: single
+      title_selector: h1.variant__header__headline
+      price_selector: "#pricerange-min .gh_price, .offer__price .gh_price"
+      stock_selector: ".offer__delivery-time, #pricerange-no-offers"
+      stock_in_texts: ["Auf Lager", "lagernd", "verfügbar"]
+      stock_out_texts: ["Derzeit keine Angebote", "ausverkauft", "nicht verfügbar"]
+
+  # Direkte Shopseiten sind für die höchste Geschwindigkeit gedacht.
+  # Ergänze sie bevorzugt über Distill -> Webhook, damit du lokal im Browser
+  # mit 10-30 Sekunden Intervall arbeiten kannst.
+  #
+  # Beispiel für eine direkte HTML-Quelle, wenn die Shopseite serverseitig
+  # gerendert ist und stabile CSS-Selektoren hat:
+  #
+  # - name: direct_shop_example
+  #   type: http
+  #   enabled: false
+  #   url: https://www.example-shop.de/search?sSearch=RTX+5070+Ti
+  #   interval_seconds: 20
+  #   timeout_seconds: 15
+  #   shop: example-shop
+  #   source: shop
+  #   scope: shop_search
+  #   product_hint: rtx-5070-ti
+  #   parser:
+  #     mode: list
+  #     item_selector: ".product-card"
+  #     title_selector: ".product-card__title"
+  #     price_selector: ".price"
+  #     link_selector: "a.product-card__link"
+  #     stock_selector: ".availability"
+  #     stock_in_texts: ["sofort lieferbar", "lagernd", "in stock"]
+  #     stock_out_texts: ["nicht verfügbar", "ausverkauft", "out of stock"]

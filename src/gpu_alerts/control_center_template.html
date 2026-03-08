@@ -1,0 +1,905 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Alertivo Control Center</title>
+  <style>
+    :root {
+      --bg-0: #050911;
+      --bg-1: #0a1220;
+      --panel: rgba(15, 24, 40, 0.94);
+      --line: #2c4766;
+      --text: #eef5ff;
+      --muted: #9cb4d6;
+      --accent: #56d0ff;
+      --ok: #2ed889;
+      --warn: #ffc14f;
+      --bad: #ff6f6f;
+      --radius: 14px;
+      --shadow: 0 20px 44px rgba(0, 0, 0, 0.42);
+      --font: "Bahnschrift", "Segoe UI", sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(circle at 8% 12%, rgba(86,208,255,0.2), transparent 26%),
+        radial-gradient(circle at 92% 8%, rgba(97,134,255,0.14), transparent 20%),
+        linear-gradient(180deg, var(--bg-0), var(--bg-1));
+    }
+    .app {
+      max-width: 1640px;
+      margin: 0 auto;
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+    .header {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(17, 28, 45, 0.97), rgba(12, 20, 33, 0.97));
+      box-shadow: var(--shadow);
+      padding: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: grid;
+      grid-template-columns: 56px minmax(0, 1fr);
+      gap: 10px;
+      align-items: center;
+    }
+    .brand img {
+      width: 56px;
+      height: 56px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.15);
+      object-fit: cover;
+    }
+    .brand-title { margin: 0; font-size: 28px; line-height: 1; }
+    .brand-sub { margin: 4px 0 0; color: var(--muted); }
+    .runtime-pill {
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 999px;
+      padding: 7px 12px;
+      color: #cae2ff;
+      font-size: 13px;
+      background: rgba(255,255,255,0.05);
+    }
+    .nav {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(13, 22, 35, 0.93);
+      box-shadow: var(--shadow);
+      padding: 10px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+    }
+    .nav button {
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      font: inherit;
+      white-space: nowrap;
+      padding: 8px 11px;
+      cursor: pointer;
+    }
+    .nav button[aria-pressed="true"] {
+      border-color: #3e6fa2;
+      background: linear-gradient(180deg, rgba(34,98,172,0.7), rgba(23,71,128,0.75));
+    }
+    .view {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(16, 26, 42, 0.96), rgba(12, 20, 34, 0.96));
+      box-shadow: var(--shadow);
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+    }
+    .view[hidden] { display: none !important; }
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+    }
+    .section-title h2 { margin: 0; font-size: 24px; }
+    .badge {
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 999px;
+      padding: 4px 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .card {
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 11px;
+      background: rgba(255,255,255,0.05);
+      padding: 11px;
+    }
+    .card .k {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .card .v {
+      margin-top: 7px;
+      font-size: 23px;
+      font-weight: 700;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .panel {
+      border: 1px solid rgba(255,255,255,0.13);
+      border-radius: 11px;
+      background: rgba(255,255,255,0.04);
+      padding: 12px;
+      display: grid;
+      gap: 10px;
+    }
+    .quick {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    button, .btn {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.07);
+      color: var(--text);
+      font: inherit;
+      padding: 9px 13px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    button:hover, .btn:hover { border-color: #3f668f; transform: translateY(-1px); }
+    .primary { background: linear-gradient(180deg, #1f8fff, #156ac7); border-color: #257dd8; }
+    .warn { background: linear-gradient(180deg, #cb8e22, #99670d); border-color: #cb8a19; }
+    .good { background: linear-gradient(180deg, #16ad70, #118754); border-color: #14945f; }
+    .kv { display: grid; gap: 8px; }
+    .kv-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 6px 0;
+      font-size: 14px;
+    }
+    .kv-row:last-child { border-bottom: 0; }
+    .muted { color: var(--muted); }
+    .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip {
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+    .form {
+      display: grid;
+      gap: 10px;
+    }
+    .field { display: grid; gap: 6px; }
+    label { color: var(--muted); font-size: 13px; }
+    input[type="text"], input[type="number"], textarea, select {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #0d1a2e;
+      color: var(--text);
+      padding: 10px 11px;
+      font: inherit;
+    }
+    textarea { min-height: 88px; resize: vertical; }
+    .check {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #0d1a2e;
+      padding: 10px 11px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+      font-size: 14px;
+    }
+    .check input { width: 17px; height: 17px; }
+    details {
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.03);
+      padding: 8px 10px;
+    }
+    details > summary { cursor: pointer; color: #c3d8f5; }
+    .sources {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .source-card {
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 11px;
+      background: rgba(255,255,255,0.04);
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+    .source-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 9px;
+      align-items: flex-start;
+    }
+    .source-url {
+      color: #cde5ff;
+      text-decoration: none;
+      word-break: break-all;
+      font-size: 13px;
+    }
+    .source-runtime {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+    }
+    .box {
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 9px;
+      padding: 8px 9px;
+      background: rgba(0,0,0,0.16);
+      font-size: 13px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      text-align: left;
+      font-size: 13px;
+      vertical-align: top;
+    }
+    th {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      background: rgba(255,255,255,0.04);
+    }
+    tr:last-child td { border-bottom: 0; }
+    .event-type {
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 999px;
+      padding: 4px 8px;
+      display: inline-block;
+    }
+    .footer {
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      padding: 11px;
+      font-size: 13px;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .footer a, .brand-sub a { color: var(--accent); text-decoration: none; }
+    .intro-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 70;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background: rgba(3, 8, 14, 0.92);
+      backdrop-filter: blur(4px);
+    }
+    .intro-overlay[hidden] { display: none !important; }
+    .intro-card {
+      width: min(960px, 100%);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 14px;
+      background: #050a12;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .intro-video-wrap { width: 100%; aspect-ratio: 16 / 9; background: #000; }
+    .intro-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .intro-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      padding: 12px;
+      border-top: 1px solid rgba(255,255,255,0.12);
+      background: rgba(14, 22, 35, 0.97);
+    }
+    .toast {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 65;
+      min-width: 280px;
+      max-width: 420px;
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: rgba(8, 16, 30, 0.96);
+      padding: 12px 14px;
+      display: none;
+    }
+    .toast.show { display: block; }
+    @media (max-width: 1300px) {
+      .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid-2 { grid-template-columns: 1fr; }
+      .sources { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 760px) {
+      .cards { grid-template-columns: 1fr; }
+      .quick button, .quick .btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="brand">
+        <img src="/assets/branding/logo-main.png" alt="Alertivo Logo">
+        <div>
+          <h1 class="brand-title">Alertivo</h1>
+          <p class="brand-sub">Schnell, lokal, klar strukturiert • dev by Ivo • <a href="http://ivo-tech.com" target="_blank" rel="noreferrer">ivo-tech.com</a></p>
+        </div>
+      </div>
+      <div class="runtime-pill" id="runtimePill" aria-live="polite">Runtime: loading</div>
+    </header>
+
+    <nav class="nav" aria-label="Bereiche">
+      <button type="button" data-view-target="dashboard" aria-pressed="true">Dashboard</button>
+      <button type="button" data-view-target="setup" aria-pressed="false">Setup</button>
+      <button type="button" data-view-target="sources" aria-pressed="false">Quellen</button>
+      <button type="button" data-view-target="alerts" aria-pressed="false">Alerts</button>
+      <button type="button" data-view-target="advanced" aria-pressed="false">Advanced</button>
+    </nav>
+
+    <section class="view" data-view="dashboard">
+      <div class="section-title">
+        <h2>Systemstatus</h2>
+        <span class="badge">Status zuerst</span>
+      </div>
+      <div class="cards" id="stats"></div>
+      <div class="grid-2">
+        <article class="panel">
+          <div class="section-title"><h2 style="font-size:20px;">Quick Actions</h2></div>
+          <div class="quick">
+            <button class="primary" id="refreshBtn">Aktualisieren</button>
+            <button id="pauseResumeBtn">Monitoring pausieren</button>
+            <button id="restartRuntimeBtn">Neu starten</button>
+            <button class="good" data-preset="price_drop">Test Alert</button>
+          </div>
+        </article>
+        <article class="panel">
+          <div class="section-title"><h2 style="font-size:20px;">Runtime-Details</h2></div>
+          <div class="kv" id="runtimeMeta"></div>
+          <div class="chips" id="channelChips"></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="view" data-view="setup" hidden>
+      <div class="section-title">
+        <h2>Setup (KISS)</h2>
+        <span class="badge">3 Pflichtfelder</span>
+      </div>
+      <form class="form" id="setupForm">
+        <div class="grid-2">
+          <div class="field">
+            <label for="setupDisplayName">1) Anzeigename</label>
+            <input id="setupDisplayName" type="text" maxlength="60" placeholder="z. B. Ivo">
+          </div>
+          <div class="field">
+            <label for="setupStartSource">2) Startquelle</label>
+            <select id="setupStartSource"></select>
+          </div>
+        </div>
+        <label class="check"><input id="setupAutostart" type="checkbox"> 3) Autostart aktivieren (optional)</label>
+        <div class="quick">
+          <button class="primary" type="submit">Setup speichern</button>
+          <button class="warn" id="rollbackConfigBtn" type="button">Backup-Rollback</button>
+        </div>
+        <details>
+          <summary>Advanced Optionen</summary>
+          <div class="form" style="margin-top:10px;">
+            <label class="check"><input id="setupSimpleMode" type="checkbox" checked> Simple Mode (Webhook aus)</label>
+            <label class="check"><input id="setupCloseToTray" type="checkbox"> Beim Schliessen in Tray minimieren</label>
+            <label class="check"><input id="setupIntroEnabled" type="checkbox" checked> Intro-Reveal anzeigen</label>
+            <label class="check"><input id="setupWebhookEnabled" type="checkbox"> Webhook aktivieren</label>
+          </div>
+        </details>
+      </form>
+    </section>
+
+    <section class="view" data-view="sources" hidden>
+      <div class="section-title">
+        <h2>Quellen</h2>
+        <span class="badge">Bearbeiten und steuern</span>
+      </div>
+      <div class="sources" id="sourcesGrid"></div>
+    </section>
+
+    <section class="view" data-view="alerts" hidden>
+      <div class="section-title">
+        <h2>Alert-Historie</h2>
+        <span class="badge">Events und Offers</span>
+      </div>
+      <div class="grid-2">
+        <article class="panel">
+          <h3 style="margin:0;">Letzte Events</h3>
+          <div style="overflow:auto;">
+            <table>
+              <thead>
+                <tr><th>Zeit</th><th>Typ</th><th>Shop</th><th>Titel</th><th>Preis</th></tr>
+              </thead>
+              <tbody id="eventsTable"></tbody>
+            </table>
+          </div>
+        </article>
+        <article class="panel">
+          <h3 style="margin:0;">Letzte Offers</h3>
+          <div style="overflow:auto;">
+            <table>
+              <thead>
+                <tr><th>Shop</th><th>Titel</th><th>Preis</th><th>Stock</th><th>Zuletzt</th></tr>
+              </thead>
+              <tbody id="offersTable"></tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="view" data-view="advanced" hidden>
+      <div class="section-title">
+        <h2>Advanced</h2>
+        <span class="badge">Globale Regeln und Distill</span>
+      </div>
+      <div class="grid-2">
+        <article class="panel">
+          <h3 style="margin:0;">Globale Regeln</h3>
+          <form class="form" id="settingsForm">
+            <div class="grid-2">
+              <div class="field">
+                <label for="refAge">Mindestalter Referenzpreis (Sek.)</label>
+                <input id="refAge" name="new_listing_reference_min_age_seconds" type="number" min="0" step="1">
+              </div>
+              <label class="check"><input id="restockToggle" name="enable_restock_alerts" type="checkbox"> Restock-Alerts aktiv</label>
+            </div>
+            <div class="field">
+              <label for="rtxExcludeCompletePcTerms">RTX Blockliste: Komplett-PC</label>
+              <textarea id="rtxExcludeCompletePcTerms" name="rtx_5070_ti_exclude_complete_pc_terms"></textarea>
+            </div>
+            <div class="field">
+              <label for="rtxExcludeNotebookTerms">RTX Blockliste: Notebooks</label>
+              <textarea id="rtxExcludeNotebookTerms" name="rtx_5070_ti_exclude_notebook_terms"></textarea>
+            </div>
+            <div class="field">
+              <label for="rtxExcludeBundleTerms">RTX Blockliste: Bundles</label>
+              <textarea id="rtxExcludeBundleTerms" name="rtx_5070_ti_exclude_bundle_terms"></textarea>
+            </div>
+            <div class="field">
+              <label for="rtxExcludeDefectTerms">RTX Blockliste: Defekt/Bastler</label>
+              <textarea id="rtxExcludeDefectTerms" name="rtx_5070_ti_exclude_defect_terms"></textarea>
+            </div>
+            <button class="primary" type="submit">Globale Einstellungen speichern</button>
+          </form>
+        </article>
+        <article class="panel">
+          <h3 style="margin:0;">Distill-Ziele</h3>
+          <div class="sources" id="distillTargets"></div>
+        </article>
+      </div>
+    </section>
+
+    <footer class="footer">
+      Alertivo • dev by Ivo • <a href="http://ivo-tech.com" target="_blank" rel="noreferrer">ivo-tech.com</a> • <a href="/status-dashboard">Status-Dashboard Einstieg</a>
+    </footer>
+  </div>
+
+  <div class="intro-overlay" id="introOverlay" hidden>
+    <div class="intro-card">
+      <div class="intro-video-wrap">
+        <video class="intro-video" id="introVideo" muted playsinline preload="auto" poster="/assets/branding/logo-main.png"></video>
+      </div>
+      <div class="intro-actions">
+        <button class="primary" id="introSkipBtn">Skip Intro</button>
+        <button class="warn" id="introDisableBtn">Nicht mehr anzeigen</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const state = { data: null, dirtySources: new Set(), introInitialized: false, activeView: "dashboard" };
+    const api = {
+      state: "/api/control-center/state",
+      runtimeCommand: "/api/control-center/runtime/command",
+      test: "/api/control-center/test-alert",
+      settings: "/api/control-center/settings",
+      source: (name) => `/api/control-center/source/${encodeURIComponent(name)}`,
+      onboarding: "/api/control-center/onboarding",
+      migrationRollback: "/api/control-center/migration/rollback",
+    };
+    const INTRO_DISABLED_KEY = "ivo_intro_disabled";
+    const introVideos = [
+      "/assets/branding/intro-cinlogoreveal.mp4",
+      "/assets/branding/intro-firefly-scanning.mp4",
+      "/assets/branding/intro-firefly-epic.mp4",
+      "/assets/branding/intro-grok.mp4",
+    ];
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+    function fmtDate(value) {
+      if (!value) return "–";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return value;
+      return new Intl.DateTimeFormat("de-DE", { dateStyle: "short", timeStyle: "medium" }).format(date);
+    }
+    function fmtMoney(value, currency = "EUR") {
+      if (value === null || value === undefined || value === "") return "–";
+      const num = Number(String(value).replace(",", "."));
+      if (Number.isNaN(num)) return `${value} ${currency}`;
+      return new Intl.NumberFormat("de-DE", { style: "currency", currency, maximumFractionDigits: 2 }).format(num);
+    }
+    function uptimeLabel(seconds) {
+      const sec = Number(seconds || 0);
+      const h = Math.floor(sec / 3600);
+      const m = Math.floor((sec % 3600) / 60);
+      const s = sec % 60;
+      return `${h}h ${m}m ${s}s`;
+    }
+    function showToast(message, isError = false) {
+      const node = document.getElementById("toast");
+      node.innerHTML = `<strong>${isError ? "Fehler" : "Info"}</strong><div style="margin-top:6px;color:#9cb4d6;">${escapeHtml(message)}</div>`;
+      node.style.borderColor = isError ? "rgba(255,107,107,0.45)" : "rgba(93,176,255,0.35)";
+      node.classList.add("show");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => node.classList.remove("show"), 3500);
+    }
+    async function request(url, options = {}) {
+      const response = await fetch(url, { headers: { "Content-Type": "application/json" }, ...options });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || data.message || response.statusText);
+      return data;
+    }
+
+    function switchView(view) {
+      state.activeView = view;
+      document.querySelectorAll("[data-view]").forEach((node) => { node.hidden = node.getAttribute("data-view") !== view; });
+      document.querySelectorAll("[data-view-target]").forEach((button) => {
+        button.setAttribute("aria-pressed", button.getAttribute("data-view-target") === view ? "true" : "false");
+      });
+    }
+
+    function closeIntroOverlay() {
+      const overlay = document.getElementById("introOverlay");
+      const video = document.getElementById("introVideo");
+      overlay.hidden = true;
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+    }
+    function initIntroOverlay(profile) {
+      const overlay = document.getElementById("introOverlay");
+      const video = document.getElementById("introVideo");
+      if (profile && profile.intro_enabled === false) {
+        overlay.hidden = true;
+        return;
+      }
+      if (localStorage.getItem(INTRO_DISABLED_KEY) === "1") {
+        overlay.hidden = true;
+        return;
+      }
+      const selected = introVideos[Math.floor(Math.random() * introVideos.length)];
+      video.src = selected;
+      overlay.hidden = false;
+      const playPromise = video.play();
+      if (playPromise && typeof playPromise.catch === "function") playPromise.catch(() => {});
+      document.getElementById("introSkipBtn").onclick = closeIntroOverlay;
+      document.getElementById("introDisableBtn").onclick = () => {
+        localStorage.setItem(INTRO_DISABLED_KEY, "1");
+        closeIntroOverlay();
+      };
+      video.onended = closeIntroOverlay;
+    }
+
+    function renderStats(data) {
+      const stats = [
+        ["Runtime", `${data.desktop.state}${data.desktop.paused ? " (paused)" : ""}`],
+        ["Aktive Quellen", data.sources.filter((source) => source.enabled).length],
+        ["Fehler aktiv", data.sources.filter((source) => source.consecutive_failures > 0).length],
+        ["Events", data.summary.events_count],
+        ["Uptime", uptimeLabel(data.runtime.uptime_seconds)],
+      ];
+      document.getElementById("stats").innerHTML = stats.map(([k, v]) => `
+        <div class="card">
+          <div class="k">${escapeHtml(k)}</div>
+          <div class="v">${escapeHtml(v)}</div>
+        </div>
+      `).join("");
+      document.getElementById("runtimePill").textContent = `Runtime: ${data.desktop.state}${data.desktop.paused ? " (paused)" : ""}`;
+    }
+
+    function renderRuntime(data) {
+      const webhookLabel = data.channels.webhook_enabled ? data.runtime.webhook_url : "deaktiviert (Simple Mode)";
+      const runtime = [
+        ["Control Center", data.runtime.control_center_url],
+        ["Webhook", webhookLabel],
+        ["Config", data.runtime.config_path],
+        ["Datenbank", data.runtime.database_path],
+        ["Gestartet", fmtDate(data.runtime.started_at)],
+        ["Letztes Event", fmtDate(data.summary.last_event_at)],
+      ];
+      document.getElementById("runtimeMeta").innerHTML = runtime.map(([k, v]) => `
+        <div class="kv-row"><span class="muted">${escapeHtml(k)}</span><span>${escapeHtml(v)}</span></div>
+      `).join("");
+      const channels = Object.entries(data.channels).map(([name, enabled]) => {
+        const cls = enabled ? "#2ed889" : "#ff6f6f";
+        return `<span class="chip"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:${cls};"></span>${escapeHtml(name)}</span>`;
+      }).join("");
+      document.getElementById("channelChips").innerHTML = channels;
+      document.getElementById("pauseResumeBtn").textContent = data.desktop.paused ? "Monitoring fortsetzen" : "Monitoring pausieren";
+    }
+
+    function renderSetupForm(data) {
+      const profile = data.profile || {};
+      document.getElementById("setupDisplayName").value = profile.display_name || "";
+      document.getElementById("setupSimpleMode").checked = profile.simple_mode !== false;
+      document.getElementById("setupAutostart").checked = !!profile.autostart_enabled;
+      document.getElementById("setupCloseToTray").checked = !!profile.close_to_tray;
+      document.getElementById("setupIntroEnabled").checked = profile.intro_enabled !== false;
+      document.getElementById("setupWebhookEnabled").checked = !!data.channels.webhook_enabled;
+      const options = (data.setup_options && data.setup_options.sources) ? data.setup_options.sources : [];
+      const selected = profile.preferred_source || "";
+      document.getElementById("setupStartSource").innerHTML = options.map((source) => `
+        <option value="${escapeHtml(source.name)}" ${source.name === selected ? "selected" : ""}>${escapeHtml(source.label)}${source.enabled ? " (aktiv)" : ""}</option>
+      `).join("");
+    }
+
+    function renderSettings(data) {
+      document.getElementById("refAge").value = data.app_settings.new_listing_reference_min_age_seconds;
+      document.getElementById("restockToggle").checked = !!data.app_settings.enable_restock_alerts;
+      document.getElementById("rtxExcludeCompletePcTerms").value = (data.app_settings.rtx_5070_ti_exclude_complete_pc_terms || []).join(", ");
+      document.getElementById("rtxExcludeNotebookTerms").value = (data.app_settings.rtx_5070_ti_exclude_notebook_terms || []).join(", ");
+      document.getElementById("rtxExcludeBundleTerms").value = (data.app_settings.rtx_5070_ti_exclude_bundle_terms || []).join(", ");
+      document.getElementById("rtxExcludeDefectTerms").value = (data.app_settings.rtx_5070_ti_exclude_defect_terms || []).join(", ");
+    }
+
+    function sourceStatusBadge(source) {
+      if (!source.enabled) return '<span class="badge">deaktiviert</span>';
+      if (source.consecutive_failures > 0) return '<span class="badge">Fehler aktiv</span>';
+      if (source.last_success_at) return '<span class="badge">gesund</span>';
+      return '<span class="badge">wartet</span>';
+    }
+    function renderSources(data) {
+      const root = document.getElementById("sourcesGrid");
+      const existingCards = new Map([...root.querySelectorAll(".source-card")].map((node) => [node.dataset.name, node]));
+      root.innerHTML = data.sources.map((source) => {
+        const preserve = state.dirtySources.has(source.name) && existingCards.has(source.name);
+        if (preserve) return existingCards.get(source.name).outerHTML;
+        return `
+          <article class="source-card" data-name="${escapeHtml(source.name)}">
+            <div class="source-head">
+              <div><strong>${escapeHtml(source.name)}</strong><div class="muted">${escapeHtml(source.shop)} • ${escapeHtml(source.type)}</div></div>
+              ${sourceStatusBadge(source)}
+            </div>
+            <a class="source-url" href="${escapeHtml(source.url || "#")}" target="_blank" rel="noreferrer">${escapeHtml(source.url || "keine URL")}</a>
+            <div class="source-runtime">
+              <div class="box"><strong>Polls</strong><div>${escapeHtml(source.total_polls)}</div></div>
+              <div class="box"><strong>Treffer</strong><div>${escapeHtml(source.last_observation_count)}</div></div>
+              <div class="box"><strong>Erfolg</strong><div>${escapeHtml(fmtDate(source.last_success_at))}</div></div>
+              <div class="box"><strong>Fehler</strong><div>${escapeHtml(source.last_error || "–")}</div></div>
+            </div>
+            <div class="field"><label>Intervall (Sek.)</label><input data-field="interval_seconds" type="number" min="5" step="1" value="${escapeHtml(source.interval_seconds)}"></div>
+            <div class="field"><label>Timeout (Sek.)</label><input data-field="timeout_seconds" type="number" min="5" step="1" value="${escapeHtml(source.timeout_seconds)}"></div>
+            <label class="check"><input data-field="enabled" type="checkbox" ${source.enabled ? "checked" : ""}> Quelle aktiv</label>
+            <div class="field"><label>Ausschlussbegriffe</label><textarea data-field="exclude_title_terms">${escapeHtml((source.exclude_title_terms || []).join(", "))}</textarea></div>
+            <div class="quick">
+              <button class="primary" data-action="save-source" data-name="${escapeHtml(source.name)}">Speichern</button>
+              <button data-action="reset-source" data-name="${escapeHtml(source.name)}">Reset</button>
+            </div>
+          </article>
+        `;
+      }).join("");
+      root.querySelectorAll(".source-card input, .source-card textarea").forEach((node) => {
+        node.addEventListener("input", (event) => {
+          const card = event.target.closest(".source-card");
+          if (!card) return;
+          state.dirtySources.add(card.dataset.name);
+        });
+      });
+    }
+
+    function renderDistillTargets(data) {
+      document.getElementById("distillTargets").innerHTML = data.distill_targets.map((target) => `
+        <article class="source-card">
+          <div class="source-head"><strong>${escapeHtml(target.name)}</strong><span class="badge">Distill</span></div>
+          <a class="source-url" href="${escapeHtml(target.url)}" target="_blank" rel="noreferrer">${escapeHtml(target.url)}</a>
+          <div class="muted">${escapeHtml(target.note)}</div>
+          <a class="btn" href="${escapeHtml(target.url)}" target="_blank" rel="noreferrer">Im Browser oeffnen</a>
+        </article>
+      `).join("");
+    }
+
+    function renderEvents(data) {
+      const rows = data.events.map((event) => `
+        <tr>
+          <td>${escapeHtml(fmtDate(event.timestamp))}</td>
+          <td><span class="event-type">${escapeHtml(event.event_type)}</span></td>
+          <td>${escapeHtml(event.shop)}</td>
+          <td><a class="source-url" href="${escapeHtml(event.offer_url)}" target="_blank" rel="noreferrer">${escapeHtml(event.title)}</a></td>
+          <td>${escapeHtml(event.old_price ? `${fmtMoney(event.old_price, event.currency)} -> ${fmtMoney(event.new_price, event.currency)}` : fmtMoney(event.new_price, event.currency))}</td>
+        </tr>
+      `).join("");
+      document.getElementById("eventsTable").innerHTML = rows || '<tr><td colspan="5" class="muted">Noch keine Events.</td></tr>';
+    }
+    function renderOffers(data) {
+      const rows = data.offers.map((offer) => `
+        <tr>
+          <td>${escapeHtml(offer.shop)}</td>
+          <td><a class="source-url" href="${escapeHtml(offer.offer_url)}" target="_blank" rel="noreferrer">${escapeHtml(offer.last_seen_title)}</a></td>
+          <td>${escapeHtml(fmtMoney(offer.last_seen_price))}</td>
+          <td>${escapeHtml(offer.last_seen_stock === null ? "–" : (offer.last_seen_stock ? "in stock" : "out of stock"))}</td>
+          <td>${escapeHtml(fmtDate(offer.last_seen_at))}</td>
+        </tr>
+      `).join("");
+      document.getElementById("offersTable").innerHTML = rows || '<tr><td colspan="5" class="muted">Noch keine Offers.</td></tr>';
+    }
+
+    async function saveSource(name) {
+      const card = document.querySelector(`.source-card[data-name="${CSS.escape(name)}"]`);
+      if (!card) return;
+      const payload = {
+        enabled: card.querySelector('[data-field="enabled"]').checked,
+        interval_seconds: Number(card.querySelector('[data-field="interval_seconds"]').value || 0),
+        timeout_seconds: Number(card.querySelector('[data-field="timeout_seconds"]').value || 0),
+        exclude_title_terms: card.querySelector('[data-field="exclude_title_terms"]').value,
+      };
+      await request(api.source(name), { method: "POST", body: JSON.stringify(payload) });
+      state.dirtySources.delete(name);
+      showToast(`Quelle ${name} gespeichert.`);
+      await loadState();
+    }
+    async function saveSettings(event) {
+      event.preventDefault();
+      const payload = {
+        enable_restock_alerts: document.getElementById("restockToggle").checked,
+        new_listing_reference_min_age_seconds: Number(document.getElementById("refAge").value || 0),
+        rtx_5070_ti_exclude_complete_pc_terms: document.getElementById("rtxExcludeCompletePcTerms").value,
+        rtx_5070_ti_exclude_notebook_terms: document.getElementById("rtxExcludeNotebookTerms").value,
+        rtx_5070_ti_exclude_bundle_terms: document.getElementById("rtxExcludeBundleTerms").value,
+        rtx_5070_ti_exclude_defect_terms: document.getElementById("rtxExcludeDefectTerms").value,
+      };
+      await request(api.settings, { method: "POST", body: JSON.stringify(payload) });
+      showToast("Globale Einstellungen gespeichert.");
+      await loadState();
+    }
+    async function saveOnboarding(event) {
+      event.preventDefault();
+      const payload = {
+        display_name: document.getElementById("setupDisplayName").value.trim(),
+        start_source: document.getElementById("setupStartSource").value,
+        autostart_enabled: document.getElementById("setupAutostart").checked,
+        simple_mode: document.getElementById("setupSimpleMode").checked,
+        close_to_tray: document.getElementById("setupCloseToTray").checked,
+        intro_enabled: document.getElementById("setupIntroEnabled").checked,
+        webhook_enabled: document.getElementById("setupWebhookEnabled").checked,
+      };
+      await request(api.onboarding, { method: "POST", body: JSON.stringify(payload) });
+      showToast("Setup gespeichert.");
+      await loadState();
+    }
+    async function sendRuntimeCommand(command) {
+      await request(api.runtimeCommand, { method: "POST", body: JSON.stringify({ command }) });
+      await loadState();
+    }
+    async function rollbackMigration() {
+      const response = await request(api.migrationRollback, { method: "POST", body: JSON.stringify({}) });
+      if (!response.ok) throw new Error("Rollback nicht verfuegbar.");
+      showToast("Backup wiederhergestellt. Runtime neu starten.");
+      await loadState();
+    }
+    async function sendTestAlert(preset) {
+      await request(api.test, { method: "POST", body: JSON.stringify({ preset }) });
+      showToast(`Test-Alert gesendet: ${preset}`);
+    }
+
+    async function loadState() {
+      const data = await request(api.state);
+      state.data = data;
+      renderStats(data);
+      renderRuntime(data);
+      renderSetupForm(data);
+      renderSettings(data);
+      renderSources(data);
+      renderDistillTargets(data);
+      renderEvents(data);
+      renderOffers(data);
+      if (!state.introInitialized) {
+        initIntroOverlay(data.profile);
+        state.introInitialized = true;
+      }
+      if (data.profile && !data.profile.onboarding_completed) {
+        switchView("setup");
+      }
+    }
+
+    document.querySelectorAll("[data-view-target]").forEach((button) => {
+      button.addEventListener("click", () => switchView(button.getAttribute("data-view-target")));
+    });
+    document.getElementById("refreshBtn").addEventListener("click", loadState);
+    document.getElementById("pauseResumeBtn").addEventListener("click", () => {
+      const command = state.data && state.data.desktop && state.data.desktop.paused ? "resume" : "pause";
+      sendRuntimeCommand(command).catch((error) => showToast(error.message, true));
+    });
+    document.getElementById("restartRuntimeBtn").addEventListener("click", () => {
+      sendRuntimeCommand("restart").catch((error) => showToast(error.message, true));
+    });
+    document.getElementById("setupForm").addEventListener("submit", (event) => {
+      saveOnboarding(event).catch((error) => showToast(error.message, true));
+    });
+    document.getElementById("settingsForm").addEventListener("submit", (event) => {
+      saveSettings(event).catch((error) => showToast(error.message, true));
+    });
+    document.getElementById("rollbackConfigBtn").addEventListener("click", () => {
+      rollbackMigration().catch((error) => showToast(error.message, true));
+    });
+    document.body.addEventListener("click", (event) => {
+      const preset = event.target.getAttribute("data-preset");
+      if (preset) {
+        sendTestAlert(preset).catch((error) => showToast(error.message, true));
+        return;
+      }
+      const action = event.target.getAttribute("data-action");
+      const name = event.target.getAttribute("data-name");
+      if (action === "save-source" && name) {
+        saveSource(name).catch((error) => showToast(error.message, true));
+      }
+      if (action === "reset-source" && name) {
+        state.dirtySources.delete(name);
+        loadState().catch((error) => showToast(error.message, true));
+      }
+    });
+
+    loadState().catch((error) => showToast(error.message, true));
+    setInterval(() => { loadState().catch(() => {}); }, 5000);
+  </script>
+</body>
+</html>
