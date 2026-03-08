@@ -23,6 +23,7 @@ from gpu_alerts.config import (
     TrackerConfig,
     TrackerFilterConfig,
     TrackerMeta,
+    TrackerProductConfig,
     TrackerShopConfig,
     WindowsConfig,
     build_distill_targets,
@@ -42,6 +43,7 @@ from gpu_alerts.migration import rollback_monitor_config
 from gpu_alerts.models import AlertEvent
 from gpu_alerts.notifiers import NotifierManager, format_event_message, send_test_notifications
 from gpu_alerts.profile import UserProfile, load_user_profile, save_user_profile
+from gpu_alerts.product_lookup import ProductLookupError, lookup_product
 from gpu_alerts.storage import Storage
 
 
@@ -219,6 +221,7 @@ class ControlCenter:
         app.router.add_get("/api/control-center/runtime", self._handle_runtime_state)
         app.router.add_post("/api/control-center/test-alert", self._handle_test_alert)
         app.router.add_post("/api/control-center/notifications/test", self._handle_notification_test)
+        app.router.add_post("/api/control-center/lookup", self._handle_lookup)
         app.router.add_post("/api/control-center/distill-preview", self._handle_distill_preview)
         app.router.add_post("/api/control-center/settings", self._handle_settings)
         app.router.add_post("/api/control-center/source/{name}", self._handle_source_update)
@@ -287,6 +290,25 @@ class ControlCenter:
                 "message": self._notification_test_message(results),
             }
         )
+
+    async def _handle_lookup(self, request: web.Request) -> web.Response:
+        self._ensure_local(request)
+        payload = await request.json() if request.can_read_body else {}
+        query = str(payload.get("query") or "").strip()
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=12)) as session:
+            try:
+                product = await lookup_product(session, query)
+            except ProductLookupError as exc:
+                return web.json_response(
+                    {
+                        "ok": False,
+                        "code": exc.code,
+                        "message": exc.message,
+                        "hint": exc.hint,
+                    },
+                    status=exc.status,
+                )
+        return web.json_response({"ok": True, "product": product.to_dict(), "message": "Produkt gefunden."})
 
     async def _handle_distill_preview(self, request: web.Request) -> web.Response:
         self._ensure_local(request)
@@ -463,6 +485,8 @@ class ControlCenter:
                 for item in payload.get("shops", [])
                 if str(item.get("shop_id") or "").strip()
             ]
+        if isinstance(payload.get("product"), dict):
+            tracker.product = TrackerProductConfig.from_dict(payload.get("product"))
         tracker.meta = TrackerMeta.from_dict(tracker.meta.to_dict())
         save_tracker_config(tracker)
         self._reload_config()
@@ -662,13 +686,22 @@ class ControlCenter:
     def _notification_test_message(results: dict[str, dict[str, Any]]) -> str:
         if not results:
             return "Keine Benachrichtigungskanaele ausgewaehlt."
-        successful = [channel for channel, result in results.items() if result.get("ok")]
-        failed = [f"{channel}: {result.get('error', 'unknown_error')}" for channel, result in results.items() if not result.get("ok")]
-        if successful and not failed:
-            return f"Testnachricht gesendet: {', '.join(successful)}."
-        if successful:
-            return f"Teilweise erfolgreich: {', '.join(successful)} | Fehler: {'; '.join(failed)}"
-        return f"Test fehlgeschlagen: {'; '.join(failed)}"
+        channel_names = {
+            "telegram": "Telegram",
+            "discord": "Discord",
+            "windows": "Windows",
+            "sound": "Sound",
+        }
+        parts: list[str] = []
+        for channel, result in results.items():
+            label = channel_names.get(channel, channel.capitalize())
+            if result.get("ok"):
+                parts.append(f"{label}: {result.get('message') or 'Testnachricht gesendet.'}")
+                continue
+            message = str(result.get("message") or "Fehler").strip()
+            hint = str(result.get("hint") or "").strip()
+            parts.append(f"{label}: {message}{f' {hint}' if hint else ''}")
+        return " | ".join(parts)
 
     def _apply_settings_payload(self, payload: dict[str, Any]) -> bool:
         profile = self._load_profile()
@@ -779,6 +812,7 @@ class ControlCenter:
                 }
                 for shop_id in tracker_payload.get("shop_ids", [])
             ]
+        product_payload = tracker_payload.get("product") if isinstance(tracker_payload.get("product"), dict) else {}
         return {
             "schema_version": 1,
             "id": tracker_id,
@@ -798,6 +832,14 @@ class ControlCenter:
                     if _parse_decimal(tracker_payload.get("new_listing_price_below")) is not None
                     else None
                 ),
+            },
+            "product": {
+                "title": str(product_payload.get("title") or "").strip(),
+                "brand": str(product_payload.get("brand") or "").strip(),
+                "image_url": str(product_payload.get("image_url") or "").strip(),
+                "identifier_type": str(product_payload.get("identifier_type") or "").strip(),
+                "identifier_value": str(product_payload.get("identifier_value") or "").strip(),
+                "source": str(product_payload.get("source") or "").strip(),
             },
             "shops": shops_raw,
             "meta": {

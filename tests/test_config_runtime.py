@@ -182,6 +182,14 @@ def test_tracker_sources_and_distill_targets_are_built_from_json(tmp_path, monke
                     "price_ceiling": 799,
                     "new_listing_price_below": None,
                 },
+                "product": {
+                    "title": "PlayStation 5 Pro",
+                    "brand": "Sony",
+                    "image_url": "https://example.com/ps5pro.png",
+                    "identifier_type": "ean",
+                    "identifier_value": "1234567890123",
+                    "source": "upcitemdb",
+                },
                 "shops": [
                     {
                         "shop_id": "amazon",
@@ -218,6 +226,8 @@ def test_tracker_sources_and_distill_targets_are_built_from_json(tmp_path, monke
     assert sources_by_shop["mediamarkt"].type == "distill"
     assert sources_by_shop["amazon"].include_title_terms == ["ps5", "pro"]
     assert str(sources_by_shop["amazon"].price_ceiling) == "799"
+    assert config.trackers[0].product is not None
+    assert config.trackers[0].product.brand == "Sony"
     assert targets[0]["tracker_id"] == "ps5-pro"
     assert '"product_hint": "ps5-pro"' in targets[0]["snippet"]
 

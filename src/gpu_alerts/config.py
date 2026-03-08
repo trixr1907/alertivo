@@ -495,6 +495,51 @@ class TrackerFilterConfig:
 
 
 @dataclass(slots=True)
+class TrackerProductConfig:
+    title: str = ""
+    brand: str = ""
+    image_url: str = ""
+    identifier_type: str = ""
+    identifier_value: str = ""
+    source: str = ""
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any] | None) -> "TrackerProductConfig | None":
+        if not isinstance(payload, dict):
+            return None
+        product = cls(
+            title=str(payload.get("title") or "").strip(),
+            brand=str(payload.get("brand") or "").strip(),
+            image_url=str(payload.get("image_url") or "").strip(),
+            identifier_type=str(payload.get("identifier_type") or "").strip(),
+            identifier_value=str(payload.get("identifier_value") or "").strip(),
+            source=str(payload.get("source") or "").strip(),
+        )
+        if not any(
+            (
+                product.title,
+                product.brand,
+                product.image_url,
+                product.identifier_type,
+                product.identifier_value,
+                product.source,
+            )
+        ):
+            return None
+        return product
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "title": self.title,
+            "brand": self.brand,
+            "image_url": self.image_url,
+            "identifier_type": self.identifier_type,
+            "identifier_value": self.identifier_value,
+            "source": self.source,
+        }
+
+
+@dataclass(slots=True)
 class TrackerShopConfig:
     shop_id: str
     enabled: bool = True
@@ -564,6 +609,7 @@ class TrackerConfig:
     enabled: bool
     query: str
     filters: TrackerFilterConfig = field(default_factory=TrackerFilterConfig)
+    product: TrackerProductConfig | None = None
     shops: list[TrackerShopConfig] = field(default_factory=list)
     meta: TrackerMeta = field(default_factory=TrackerMeta)
     path: Path | None = None
@@ -577,6 +623,7 @@ class TrackerConfig:
             enabled=bool(payload.get("enabled", True)),
             query=str(payload.get("query") or "").strip(),
             filters=TrackerFilterConfig.from_dict(payload.get("filters", {})),
+            product=TrackerProductConfig.from_dict(payload.get("product")),
             shops=[
                 TrackerShopConfig.from_dict(item)
                 for item in payload.get("shops", [])
@@ -602,6 +649,7 @@ class TrackerConfig:
             "enabled": self.enabled,
             "query": self.query,
             "filters": self.filters.to_dict(),
+            "product": self.product.to_dict() if self.product else None,
             "shops": [shop.to_dict() for shop in self.shops],
             "meta": self.meta.to_dict(),
         }

@@ -224,6 +224,78 @@
     }
     .status-line.error { color: var(--bad); }
     .status-line.ok { color: var(--accent-2); }
+    .help-text {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .help-text strong {
+      color: var(--text);
+      font-weight: 700;
+    }
+    .lookup-box {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+    }
+    .lookup-preview {
+      display: none;
+      gap: 12px;
+      grid-template-columns: 88px minmax(0, 1fr);
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(95,224,255,0.16);
+      background: rgba(95,224,255,0.06);
+    }
+    .lookup-preview.visible { display: grid; }
+    .lookup-preview img {
+      width: 88px;
+      height: 88px;
+      object-fit: cover;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .lookup-meta {
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+    .lookup-title {
+      font-size: 18px;
+      color: var(--text);
+      line-height: 1.2;
+    }
+    .advanced-details {
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      padding: 12px 14px;
+    }
+    .advanced-details summary {
+      cursor: pointer;
+      color: var(--text);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      list-style: none;
+    }
+    .advanced-details summary::-webkit-details-marker { display: none; }
+    .advanced-details .details-body {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    input:invalid, textarea:invalid {
+      border-color: rgba(255,123,123,0.6);
+    }
+    button[data-busy="true"] {
+      opacity: 0.65;
+      cursor: progress;
+    }
     .cards {
       display: grid;
       gap: 12px;
@@ -403,30 +475,36 @@
             <div class="section-head">
               <div>
                 <h3>Benachrichtigungen</h3>
-                <p class="meta">Telegram und Discord koennen sofort mit einer echten Testnachricht validiert werden. Distill erzeugt spaeter den lokalen Webhook-Schutzheader.</p>
+                <p class="meta">Trage nur ein, wo Alertivo dich benachrichtigen soll. Du kannst beide Kanaele sofort mit einer echten Testnachricht pruefen.</p>
               </div>
             </div>
             <div class="form-grid">
               <label>
-                Distill Token
-                <input id="onboardingDistillToken" placeholder="optional, aber empfohlen fuer Webhook-Schutz">
-              </label>
-              <div class="meta">Der Token wird in den Distill-Snippets als `X-Webhook-Token` eingebaut.</div>
-            </div>
-            <div class="form-grid">
-              <label>
                 Telegram Bot Token
-                <input id="onboardingTelegramToken" placeholder="123456789:...">
+                <input id="onboardingTelegramToken" placeholder="123456789:ABC..." pattern="\d{6,}:[A-Za-z0-9_\-]{20,}" title="Bitte den kompletten Bot-Token aus BotFather einfuegen.">
+                <div class="help-text"><strong>So findest du den Token:</strong> Oeffne <code>@BotFather</code> in Telegram, erstelle oder waehle deinen Bot und kopiere den Token.</div>
               </label>
               <label>
                 Telegram Chat ID
-                <input id="onboardingTelegramChat" placeholder="z. B. 123456789">
+                <input id="onboardingTelegramChat" placeholder="z. B. 123456789 oder -100..." pattern="-?[0-9]+" title="Die Chat-ID darf nur Zahlen enthalten, optional mit einem fuehrenden Minus.">
+                <div class="help-text"><strong>So findest du die Chat-ID:</strong> Schreibe <code>@userinfobot</code> in Telegram. Dort steht deine Chat-ID als Zahl.</div>
               </label>
             </div>
             <label>
               Discord Webhook URL
-              <input id="onboardingDiscordWebhook" placeholder="https://discord.com/api/webhooks/...">
+              <input id="onboardingDiscordWebhook" placeholder="https://discord.com/api/webhooks/..." pattern="https://.*discord.*?/api/webhooks/.+" title="Bitte die komplette Discord-Webhook-URL einfuegen.">
+              <div class="help-text"><strong>So findest du die URL:</strong> Oeffne in Discord den Zielkanal, gehe auf <code>Einstellungen &gt; Integrationen &gt; Webhooks</code> und kopiere die komplette Webhook-URL.</div>
             </label>
+            <details class="advanced-details">
+              <summary>Erweitert</summary>
+              <div class="details-body">
+                <label>
+                  Distill Token
+                  <input id="onboardingDistillToken" placeholder="optional fuer zusaetzlichen Webhook-Schutz">
+                  <div class="help-text">Nur noetig, wenn du spaeter Distill fuer dynamische Shops nutzt. Alertivo baut den Token dann automatisch in die Snippets ein.</div>
+                </label>
+              </div>
+            </details>
             <div class="button-row">
               <button type="button" class="secondary" id="onboardingTestTelegramButton">Telegram testen</button>
               <button type="button" class="secondary" id="onboardingTestDiscordButton">Discord testen</button>
@@ -444,9 +522,21 @@
             <div class="section-head">
               <div>
                 <h3>Erster Tracker</h3>
-                <p class="meta">Beliebiges Produktprofil mit eigenen Shops, Include- und Exclude-Filtern.</p>
+                <p class="meta">Suche dein Produkt einfach ueber Namen oder Strichcode. Alertivo fuellt die wichtigsten Felder automatisch fuer dich aus.</p>
               </div>
             </div>
+          <div class="lookup-box">
+            <label>
+              Produkt suchen oder Strichcode eingeben
+              <input id="onboardingProductLookup" placeholder="z. B. PS5 Pro, Fritzbox 5590 oder 9780132350884">
+              <div class="help-text">Du kannst Produktname, EAN, ISBN oder GTIN eingeben. Bei einem Treffer uebernimmt Alertivo Produktname, Suchanfrage und Marke automatisch.</div>
+            </label>
+            <div class="button-row">
+              <button type="button" class="secondary" id="onboardingLookupButton">Produkt suchen</button>
+            </div>
+            <div class="lookup-preview" id="onboardingLookupPreview"></div>
+            <div class="status-line" id="onboardingLookupStatus"></div>
+          </div>
           <div class="form-grid">
             <label>
               Produktname
@@ -459,12 +549,14 @@
           </div>
           <div class="form-grid">
             <label>
-              Include Terms
+              Muss enthalten
               <textarea id="onboardingIncludeTerms" placeholder="ps5, pro"></textarea>
+              <div class="help-text">Alertivo ergaenzt hier automatisch die Marke oder wichtige Suchbegriffe.</div>
             </label>
             <label>
-              Exclude Terms
+              Soll ausgeschlossen werden
               <textarea id="onboardingExcludeTerms" placeholder="bundle, digital, defekt"></textarea>
+              <div class="help-text">Zum Beispiel Bundle, defekt, gebraucht oder andere Varianten, die du nicht willst.</div>
             </label>
           </div>
           <div>
@@ -556,16 +648,19 @@
           <div class="form-grid">
             <label>
               Telegram Bot Token
-              <input id="telegramBotToken">
+              <input id="telegramBotToken" pattern="\d{6,}:[A-Za-z0-9_\-]{20,}" title="Bitte den kompletten Bot-Token aus BotFather einfuegen.">
+              <div class="help-text">Token bekommst du bei <code>@BotFather</code>.</div>
             </label>
             <label>
               Telegram Chat ID
-              <input id="telegramChatId">
+              <input id="telegramChatId" pattern="-?[0-9]+" title="Die Chat-ID darf nur Zahlen enthalten, optional mit einem fuehrenden Minus.">
+              <div class="help-text">Chat-ID bekommst du bei <code>@userinfobot</code>.</div>
             </label>
           </div>
           <label>
             Discord Webhook URL
-            <input id="discordWebhookUrl">
+            <input id="discordWebhookUrl" pattern="https://.*discord.*?/api/webhooks/.+" title="Bitte die komplette Discord-Webhook-URL einfuegen.">
+            <div class="help-text">Lege den Webhook direkt im gewuenschten Discord-Kanal an und kopiere die komplette URL.</div>
           </label>
           <div class="form-grid">
             <label>
@@ -608,6 +703,18 @@
           </div>
         </div>
         <form id="trackerForm">
+          <div class="lookup-box">
+            <label>
+              Produkt suchen oder Strichcode eingeben
+              <input id="trackerProductLookup" placeholder="z. B. Steam Deck OLED oder 0195949037349">
+              <div class="help-text">Ideal fuer neue Tracker. Alertivo fuellt Produktname, Suchanfrage und Marke automatisch aus.</div>
+            </label>
+            <div class="button-row">
+              <button type="button" class="secondary" id="trackerLookupButton">Produkt suchen</button>
+            </div>
+            <div class="lookup-preview" id="trackerLookupPreview"></div>
+            <div class="status-line" id="trackerLookupStatus"></div>
+          </div>
           <div class="form-grid">
             <label>
               Produktname
@@ -620,12 +727,14 @@
           </div>
           <div class="form-grid">
             <label>
-              Include Terms
+              Muss enthalten
               <textarea id="trackerIncludeTerms" placeholder="ps5, pro"></textarea>
+              <div class="help-text">Hier helfen Marke, Modell oder andere eindeutige Begriffe.</div>
             </label>
             <label>
-              Exclude Terms
+              Soll ausgeschlossen werden
               <textarea id="trackerExcludeTerms" placeholder="bundle, digital, defekt"></textarea>
+              <div class="help-text">Zum Beispiel gebraucht, defekt, bundle oder falsche Modellvarianten.</div>
             </label>
           </div>
           <div class="form-grid">
@@ -688,6 +797,7 @@
       runtimeCommand: "/api/control-center/runtime/command",
       test: "/api/control-center/test-alert",
       notificationTest: "/api/control-center/notifications/test",
+      lookup: "/api/control-center/lookup",
       distillPreview: "/api/control-center/distill-preview",
       settings: "/api/control-center/settings",
       source: (name) => `/api/control-center/source/${encodeURIComponent(name)}`,
@@ -708,6 +818,8 @@
       onboardingShopOptions: document.getElementById("onboardingShopOptions"),
       trackerShopOptions: document.getElementById("trackerShopOptions"),
       onboardingStatus: document.getElementById("onboardingStatus"),
+      onboardingLookupStatus: document.getElementById("onboardingLookupStatus"),
+      trackerLookupStatus: document.getElementById("trackerLookupStatus"),
       settingsStatus: document.getElementById("settingsStatus"),
       trackerStatus: document.getElementById("trackerStatus"),
     };
@@ -716,6 +828,10 @@
     let overlayHydrated = false;
     let wizardStepIndex = 0;
     let reconnectDeadline = 0;
+    let trackerLookupProducts = {
+      onboarding: null,
+      tracker: null,
+    };
 
     const RECONNECT_WINDOW_MS = 15000;
     const RECONNECT_RETRY_MS = 600;
@@ -727,7 +843,12 @@
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(payload.error || `HTTP ${response.status}`);
+        const message = payload.message || payload.error || `HTTP ${response.status}`;
+        const hint = payload.hint ? ` ${payload.hint}` : "";
+        const error = new Error(`${message}${hint}`.trim());
+        error.code = payload.code || payload.error || `HTTP_${response.status}`;
+        error.payload = payload;
+        throw error;
       }
       return payload;
     }
@@ -753,11 +874,54 @@
       element.className = `status-line ${type}`.trim();
     }
 
+    function setButtonBusy(button, busy, busyLabel = "Lade...") {
+      if (!button) {
+        return;
+      }
+      if (!button.dataset.originalLabel) {
+        button.dataset.originalLabel = button.textContent;
+      }
+      button.disabled = busy;
+      button.dataset.busy = busy ? "true" : "false";
+      button.textContent = busy ? busyLabel : button.dataset.originalLabel;
+    }
+
+    async function withButtonBusy(button, busyLabel, callback) {
+      setButtonBusy(button, true, busyLabel);
+      try {
+        return await callback();
+      } finally {
+        setButtonBusy(button, false);
+      }
+    }
+
+    function reportValidityById(fieldIds) {
+      for (const fieldId of fieldIds) {
+        const field = document.getElementById(fieldId);
+        if (field && !field.reportValidity()) {
+          return false;
+        }
+      }
+      return true;
+    }
+
     function parseTerms(value) {
       return value
         .split(/[,\n]/)
         .map((item) => item.trim())
         .filter(Boolean);
+    }
+
+    function mergeTerms(existingTerms, extraTerm) {
+      const normalized = (extraTerm || "").trim();
+      if (!normalized) {
+        return existingTerms;
+      }
+      const lower = normalized.toLowerCase();
+      if (existingTerms.some((term) => term.toLowerCase() === lower)) {
+        return existingTerms;
+      }
+      return [...existingTerms, normalized];
     }
 
     function shopSelectorMarkup(prefix, shops, selectedValues) {
@@ -819,7 +983,80 @@
         price_ceiling: isOnboarding ? null : (document.getElementById("trackerPriceCeiling").value || null),
         new_listing_price_below: isOnboarding ? null : (document.getElementById("trackerNewListingThreshold").value || null),
         shops: collectSelectedShops(prefix),
+        product: trackerLookupProducts[prefix] || null,
       };
+    }
+
+    function lookupFieldId(prefix) {
+      return prefix === "onboarding" ? "onboardingProductLookup" : "trackerProductLookup";
+    }
+
+    function lookupPreviewId(prefix) {
+      return prefix === "onboarding" ? "onboardingLookupPreview" : "trackerLookupPreview";
+    }
+
+    function lookupStatusElement(prefix) {
+      return prefix === "onboarding" ? els.onboardingLookupStatus : els.trackerLookupStatus;
+    }
+
+    function productIdentifierLabel(product) {
+      if (!product || !product.identifier_value) {
+        return "";
+      }
+      const kind = (product.identifier_type || "ID").toUpperCase();
+      return `${kind}: ${product.identifier_value}`;
+    }
+
+    function renderLookupPreview(prefix, product) {
+      const preview = document.getElementById(lookupPreviewId(prefix));
+      if (!preview) {
+        return;
+      }
+      if (!product) {
+        preview.classList.remove("visible");
+        preview.innerHTML = "";
+        return;
+      }
+      const tags = [
+        product.brand ? `<span class="badge">${product.brand}</span>` : "",
+        productIdentifierLabel(product) ? `<span class="badge">${productIdentifierLabel(product)}</span>` : "",
+        product.source ? `<span class="badge">${product.source}</span>` : "",
+      ].filter(Boolean).join("");
+      preview.innerHTML = `
+        <div>
+          ${product.image_url ? `<img src="${product.image_url}" alt="${product.title}">` : `<div class="card" style="height:88px;"></div>`}
+        </div>
+        <div class="lookup-meta">
+          <div class="lookup-title">${product.title || "Produkt"}</div>
+          <div class="help-text">${product.search_query || ""}</div>
+          <div class="inline-list">${tags}</div>
+        </div>
+      `;
+      preview.classList.add("visible");
+    }
+
+    function applyLookupResult(prefix, product) {
+      const nameFieldId = prefix === "onboarding" ? "onboardingTrackerName" : "trackerName";
+      const queryFieldId = prefix === "onboarding" ? "onboardingTrackerQuery" : "trackerQuery";
+      const includeFieldId = prefix === "onboarding" ? "onboardingIncludeTerms" : "trackerIncludeTerms";
+      document.getElementById(nameFieldId).value = product.title || "";
+      document.getElementById(queryFieldId).value = product.search_query || product.title || "";
+      const existingTerms = parseTerms(document.getElementById(includeFieldId).value);
+      const mergedTerms = mergeTerms(existingTerms, product.brand || "");
+      document.getElementById(includeFieldId).value = mergedTerms.join(", ");
+      trackerLookupProducts[prefix] = product;
+      renderLookupPreview(prefix, product);
+      setStatus(lookupStatusElement(prefix), "Produktdaten uebernommen.", "ok");
+    }
+
+    function resetLookupState(prefix) {
+      trackerLookupProducts[prefix] = null;
+      const field = document.getElementById(lookupFieldId(prefix));
+      if (field) {
+        field.value = "";
+      }
+      renderLookupPreview(prefix, null);
+      setStatus(lookupStatusElement(prefix), "", "");
     }
 
     function buildNotificationPayload(mode) {
@@ -851,6 +1088,47 @@
         sound_file: document.getElementById("soundFile").value.trim(),
         distill_token: document.getElementById("distillToken").value.trim(),
       };
+    }
+
+    function validateNotificationFields(mode, channels) {
+      const fieldIds = [];
+      const wantsTelegram = channels.includes("telegram");
+      const wantsDiscord = channels.includes("discord");
+      if (mode === "onboarding") {
+        if (wantsTelegram) {
+          fieldIds.push("onboardingTelegramToken", "onboardingTelegramChat");
+        }
+        if (wantsDiscord) {
+          fieldIds.push("onboardingDiscordWebhook");
+        }
+      } else {
+        if (wantsTelegram) {
+          fieldIds.push("telegramBotToken", "telegramChatId");
+        }
+        if (wantsDiscord) {
+          fieldIds.push("discordWebhookUrl");
+        }
+      }
+      return reportValidityById(fieldIds);
+    }
+
+    async function runProductLookup(prefix) {
+      const field = document.getElementById(lookupFieldId(prefix));
+      const button = document.getElementById(prefix === "onboarding" ? "onboardingLookupButton" : "trackerLookupButton");
+      const statusElement = lookupStatusElement(prefix);
+      const query = field.value.trim();
+      if (!query) {
+        setStatus(statusElement, "Bitte gib zuerst einen Produktnamen oder Strichcode ein.", "error");
+        return null;
+      }
+      return withButtonBusy(button, "Lade...", async () => {
+        const result = await request(api.lookup, {
+          method: "POST",
+          body: JSON.stringify({ query }),
+        });
+        applyLookupResult(prefix, result.product);
+        return result.product;
+      });
     }
 
     function renderSnippetCards(targets, container, statusElement, namespace) {
@@ -954,6 +1232,20 @@
               <button type="button" class="secondary" data-delete-tracker="${tracker.id}">Loeschen</button>
             </div>
           </div>
+          ${tracker.product && (tracker.product.title || tracker.product.identifier_value || tracker.product.image_url) ? `
+            <div class="lookup-preview visible">
+              <div>
+                ${tracker.product.image_url ? `<img src="${tracker.product.image_url}" alt="${tracker.product.title || tracker.name}">` : `<div class="card" style="height:88px;"></div>`}
+              </div>
+              <div class="lookup-meta">
+                <div class="lookup-title">${tracker.product.title || tracker.name}</div>
+                <div class="inline-list">
+                  ${tracker.product.brand ? `<span class="badge">${tracker.product.brand}</span>` : ""}
+                  ${tracker.product.identifier_value ? `<span class="badge">${(tracker.product.identifier_type || "ID").toUpperCase()}: ${tracker.product.identifier_value}</span>` : ""}
+                </div>
+              </div>
+            </div>
+          ` : ""}
           <div class="inline-list">
             ${(tracker.filters.include_terms || []).map((term) => `<span class="badge">+ ${term}</span>`).join("")}
             ${(tracker.filters.exclude_terms || []).map((term) => `<span class="badge">- ${term}</span>`).join("")}
@@ -1051,6 +1343,7 @@
       document.getElementById("onboardingTelegramToken").value = (((data.settings || {}).notifications || {}).telegram || {}).bot_token || "";
       document.getElementById("onboardingTelegramChat").value = (((data.settings || {}).notifications || {}).telegram || {}).chat_id || "";
       document.getElementById("onboardingDiscordWebhook").value = (((data.settings || {}).notifications || {}).discord || {}).webhook_url || "";
+      resetLookupState("onboarding");
       overlayHydrated = true;
       setWizardStep(0);
     }
@@ -1072,17 +1365,22 @@
       }
     }
 
-    async function runNotificationTest(mode, channels, statusElement) {
-      const payload = {
-        ...buildNotificationPayload(mode),
-        channels,
-      };
-      const result = await request(api.notificationTest, {
-        method: "POST",
-        body: JSON.stringify(payload),
+    async function runNotificationTest(mode, channels, statusElement, button) {
+      if (!validateNotificationFields(mode, channels)) {
+        return null;
+      }
+      return withButtonBusy(button, "Teste...", async () => {
+        const payload = {
+          ...buildNotificationPayload(mode),
+          channels,
+        };
+        const result = await request(api.notificationTest, {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+        setStatus(statusElement, result.message, result.ok ? "ok" : "error");
+        return result;
       });
-      setStatus(statusElement, result.message, result.ok ? "ok" : "error");
-      return result;
     }
 
     async function refreshState() {
@@ -1134,6 +1432,32 @@
       }
     }
 
+    ["onboarding", "tracker"].forEach((prefix) => {
+      const input = document.getElementById(lookupFieldId(prefix));
+      const button = document.getElementById(prefix === "onboarding" ? "onboardingLookupButton" : "trackerLookupButton");
+      if (!input || !button) {
+        return;
+      }
+      input.addEventListener("keydown", async (event) => {
+        if (event.key !== "Enter") {
+          return;
+        }
+        event.preventDefault();
+        try {
+          await runProductLookup(prefix);
+        } catch (error) {
+          setStatus(lookupStatusElement(prefix), error.message, "error");
+        }
+      });
+      button.addEventListener("click", async () => {
+        try {
+          await runProductLookup(prefix);
+        } catch (error) {
+          setStatus(lookupStatusElement(prefix), error.message, "error");
+        }
+      });
+    });
+
     document.getElementById("settingsForm").addEventListener("submit", async (event) => {
       event.preventDefault();
       try {
@@ -1178,6 +1502,7 @@
         const payload = buildTrackerPayload("tracker");
         const result = await request(api.trackers, { method: "POST", body: JSON.stringify(payload) });
         event.target.reset();
+        resetLookupState("tracker");
         if (result.restart_required) {
           await refreshStateWithRecovery(
             els.trackerStatus,
@@ -1234,21 +1559,26 @@
 
     document.getElementById("testTelegramButton").addEventListener("click", async () => {
       try {
-        await runNotificationTest("settings", ["telegram"], els.settingsStatus);
+        await runNotificationTest("settings", ["telegram"], els.settingsStatus, document.getElementById("testTelegramButton"));
       } catch (error) {
         setStatus(els.settingsStatus, error.message, "error");
       }
     });
     document.getElementById("testDiscordButton").addEventListener("click", async () => {
       try {
-        await runNotificationTest("settings", ["discord"], els.settingsStatus);
+        await runNotificationTest("settings", ["discord"], els.settingsStatus, document.getElementById("testDiscordButton"));
       } catch (error) {
         setStatus(els.settingsStatus, error.message, "error");
       }
     });
     document.getElementById("testAllNotificationsButton").addEventListener("click", async () => {
       try {
-        await runNotificationTest("settings", ["telegram", "discord", "windows", "sound"], els.settingsStatus);
+        await runNotificationTest(
+          "settings",
+          ["telegram", "discord", "windows", "sound"],
+          els.settingsStatus,
+          document.getElementById("testAllNotificationsButton")
+        );
       } catch (error) {
         setStatus(els.settingsStatus, error.message, "error");
       }
@@ -1256,21 +1586,36 @@
 
     document.getElementById("onboardingTestTelegramButton").addEventListener("click", async () => {
       try {
-        await runNotificationTest("onboarding", ["telegram"], els.onboardingStatus);
+        await runNotificationTest(
+          "onboarding",
+          ["telegram"],
+          els.onboardingStatus,
+          document.getElementById("onboardingTestTelegramButton")
+        );
       } catch (error) {
         setStatus(els.onboardingStatus, error.message, "error");
       }
     });
     document.getElementById("onboardingTestDiscordButton").addEventListener("click", async () => {
       try {
-        await runNotificationTest("onboarding", ["discord"], els.onboardingStatus);
+        await runNotificationTest(
+          "onboarding",
+          ["discord"],
+          els.onboardingStatus,
+          document.getElementById("onboardingTestDiscordButton")
+        );
       } catch (error) {
         setStatus(els.onboardingStatus, error.message, "error");
       }
     });
     document.getElementById("onboardingTestAllButton").addEventListener("click", async () => {
       try {
-        await runNotificationTest("onboarding", ["telegram", "discord"], els.onboardingStatus);
+        await runNotificationTest(
+          "onboarding",
+          ["telegram", "discord"],
+          els.onboardingStatus,
+          document.getElementById("onboardingTestAllButton")
+        );
       } catch (error) {
         setStatus(els.onboardingStatus, error.message, "error");
       }

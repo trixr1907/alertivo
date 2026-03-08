@@ -12,6 +12,7 @@ from gpu_alerts.control_center import ControlCenter, MonitorRuntime
 from gpu_alerts.engine import AlertEngine
 from gpu_alerts.matcher import ProductMatcher
 from gpu_alerts.notifiers import NotifierManager
+from gpu_alerts.product_lookup import ProductLookupError, ProductLookupResult
 from gpu_alerts.storage import Storage
 from tests.helpers import write_system_json
 
@@ -130,6 +131,9 @@ def test_control_center_contains_branding_markers(tmp_path, monkeypatch) -> None
                     assert "/assets/branding/logo-main.png" in html
                     assert "ivo-tech.com" in html
                     assert 'id="introOverlay"' in html
+                    assert "Produkt suchen oder Strichcode eingeben" in html
+                    assert 'id="onboardingProductLookup"' in html
+                    assert 'pattern="-?[0-9]+"' in html
         finally:
             await runner.cleanup()
             storage.close()
@@ -201,6 +205,14 @@ def test_onboarding_endpoint_persists_first_tracker_filters(tmp_path, monkeypatc
                         "query": "Smoke Console",
                         "include_terms": ["smoke", "console"],
                         "exclude_terms": ["bundle", "gebraucht"],
+                        "product": {
+                            "title": "Smoke Console Deluxe",
+                            "brand": "Acme",
+                            "image_url": "https://example.com/smoke-console.png",
+                            "identifier_type": "ean",
+                            "identifier_value": "1234567890123",
+                            "source": "upcitemdb",
+                        },
                         "shops": [
                             {"shop_id": "amazon-search", "enabled": True, "mode": "auto"},
                             {"shop_id": "mediamarkt-search", "enabled": True, "mode": "auto"},
@@ -216,6 +228,8 @@ def test_onboarding_endpoint_persists_first_tracker_filters(tmp_path, monkeypatc
                 tracker = next(item for item in state_config.trackers if item.id == "smoke-console")
                 assert tracker.filters.include_terms == ["smoke", "console"]
                 assert tracker.filters.exclude_terms == ["bundle", "gebraucht"]
+                assert tracker.product is not None
+                assert tracker.product.identifier_value == "1234567890123"
         finally:
             await runner.cleanup()
             storage.close()
@@ -276,8 +290,13 @@ def test_notification_test_endpoint_returns_channel_results(tmp_path, monkeypatc
 
     async def fake_send_test_notifications(session, **kwargs):  # type: ignore[no-untyped-def]
         return {
-            "telegram": {"ok": True},
-            "discord": {"ok": False, "error": "discord_failed"},
+            "telegram": {"ok": True, "code": "ok", "message": "Testnachricht gesendet."},
+            "discord": {
+                "ok": False,
+                "code": "discord_invalid_webhook",
+                "message": "Dieser Discord-Webhook wurde nicht gefunden.",
+                "hint": "Lege einen neuen Webhook an.",
+            },
         }
 
     monkeypatch.setattr(control_center_module, "send_test_notifications", fake_send_test_notifications)
@@ -301,6 +320,105 @@ def test_notification_test_endpoint_returns_channel_results(tmp_path, monkeypatc
                     assert payload["ok"] is False
                     assert payload["results"]["telegram"]["ok"] is True
                     assert payload["results"]["discord"]["ok"] is False
+                    assert payload["results"]["discord"]["code"] == "discord_invalid_webhook"
+                    assert "Webhook" in payload["message"]
+        finally:
+            await runner.cleanup()
+            storage.close()
+
+    asyncio.run(_case())
+
+
+def test_lookup_endpoint_returns_product_payload(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("APPDATA", str(tmp_path / "appdata"))
+
+    async def fake_lookup_product(session, query):  # type: ignore[no-untyped-def]
+        assert query == "Steam Deck OLED"
+        return ProductLookupResult(
+            title="Valve Steam Deck OLED 1TB",
+            search_query="Valve Steam Deck OLED",
+            brand="Valve",
+            image_url="https://example.com/steamdeck.png",
+            identifier_type="ean",
+            identifier_value="1234567890123",
+            source="upcitemdb",
+        )
+
+    monkeypatch.setattr(control_center_module, "lookup_product", fake_lookup_product)
+
+    async def _case() -> None:
+        runner, storage, base_url, _ = await _start_app(tmp_path)
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{base_url}/api/control-center/lookup",
+                    json={"query": "Steam Deck OLED"},
+                ) as response:
+                    assert response.status == 200
+                    payload = await response.json()
+                    assert payload["ok"] is True
+                    assert payload["product"]["brand"] == "Valve"
+                    assert payload["product"]["identifier_value"] == "1234567890123"
+        finally:
+            await runner.cleanup()
+            storage.close()
+
+    asyncio.run(_case())
+
+
+def test_lookup_endpoint_surfaces_rate_limit_message(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("APPDATA", str(tmp_path / "appdata"))
+
+    async def fake_lookup_product(session, query):  # type: ignore[no-untyped-def]
+        raise ProductLookupError(
+            "lookup_rate_limited",
+            "Limit der kostenlosen EAN-Suche erreicht. Bitte manuell eintragen.",
+            status=429,
+            hint="Du kannst Produktname und Suchbegriffe direkt selbst eintragen.",
+        )
+
+    monkeypatch.setattr(control_center_module, "lookup_product", fake_lookup_product)
+
+    async def _case() -> None:
+        runner, storage, base_url, _ = await _start_app(tmp_path)
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{base_url}/api/control-center/lookup",
+                    json={"query": "0045496453402"},
+                ) as response:
+                    assert response.status == 429
+                    payload = await response.json()
+                    assert payload["ok"] is False
+                    assert payload["code"] == "lookup_rate_limited"
+                    assert "kostenlosen EAN-Suche" in payload["message"]
+        finally:
+            await runner.cleanup()
+            storage.close()
+
+    asyncio.run(_case())
+
+
+def test_lookup_endpoint_returns_no_match_message(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("APPDATA", str(tmp_path / "appdata"))
+
+    async def fake_lookup_product(session, query):  # type: ignore[no-untyped-def]
+        raise ProductLookupError("lookup_no_match", "Kein passendes Produkt gefunden.", status=404)
+
+    monkeypatch.setattr(control_center_module, "lookup_product", fake_lookup_product)
+
+    async def _case() -> None:
+        runner, storage, base_url, _ = await _start_app(tmp_path)
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{base_url}/api/control-center/lookup",
+                    json={"query": "Unbekannt"},
+                ) as response:
+                    assert response.status == 404
+                    payload = await response.json()
+                    assert payload["ok"] is False
+                    assert payload["code"] == "lookup_no_match"
         finally:
             await runner.cleanup()
             storage.close()

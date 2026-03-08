@@ -7,7 +7,7 @@ import logging
 import os
 import sys
 from decimal import Decimal
-from typing import Protocol
+from typing import Any, Protocol
 
 import aiohttp
 
@@ -16,6 +16,17 @@ from gpu_alerts.models import AlertEvent
 
 
 LOGGER = logging.getLogger(__name__)
+TELEGRAM_API_BASE_URL = "https://api.telegram.org"
+
+
+class NotificationTestError(Exception):
+    def __init__(self, channel: str, code: str, message: str, *, hint: str | None = None, status: int | None = None):
+        super().__init__(message)
+        self.channel = channel
+        self.code = code
+        self.message = message
+        self.hint = hint
+        self.status = status
 
 
 class Notifier(Protocol):
@@ -54,9 +65,12 @@ class TelegramNotifier:
             "text": format_event_message(event),
             "disable_web_page_preview": False,
         }
-        url = f"https://api.telegram.org/bot{self._config.bot_token}/sendMessage"
+        url = f"{TELEGRAM_API_BASE_URL.rstrip('/')}/bot{self._config.bot_token}/sendMessage"
         async with self._session.post(url, json=payload) as response:
-            response.raise_for_status()
+            if response.status < 400:
+                return
+            payload = await _read_response_payload(response)
+            raise _telegram_response_error(response.status, payload)
 
 
 class DiscordNotifier:
@@ -71,7 +85,10 @@ class DiscordNotifier:
             "url": event.url,
         }
         async with self._session.post(self._config.webhook_url, json={"embeds": [embed]}) as response:
-            response.raise_for_status()
+            if response.status < 400:
+                return
+            payload = await _read_response_payload(response)
+            raise _discord_response_error(response.status, payload)
 
 
 class WindowsToastNotifier:
@@ -222,28 +239,159 @@ async def send_test_notifications(
         try:
             if channel == "telegram":
                 if telegram is None:
-                    raise ValueError("telegram_not_configured")
+                    raise NotificationTestError(
+                        "telegram",
+                        "telegram_not_configured",
+                        "Telegram ist noch nicht vollständig eingerichtet.",
+                        hint="Trage Bot-Token und Chat-ID ein.",
+                    )
                 await TelegramNotifier(session, telegram).send(event)
             elif channel == "discord":
                 if discord is None:
-                    raise ValueError("discord_not_configured")
+                    raise NotificationTestError(
+                        "discord",
+                        "discord_not_configured",
+                        "Discord ist noch nicht vollständig eingerichtet.",
+                        hint="Trage eine vollständige Discord-Webhook-URL ein.",
+                    )
                 await DiscordNotifier(session, discord).send(event)
             elif channel == "windows":
                 if windows is None or not windows.enabled:
-                    raise ValueError("windows_notifications_disabled")
+                    raise NotificationTestError(
+                        "windows",
+                        "windows_notifications_disabled",
+                        "Windows-Benachrichtigungen sind ausgeschaltet.",
+                    )
                 await WindowsToastNotifier(windows).send(event)
             elif channel == "sound":
                 if sound is None or not sound.enabled:
-                    raise ValueError("sound_notifications_disabled")
+                    raise NotificationTestError(
+                        "sound",
+                        "sound_notifications_disabled",
+                        "Sound-Benachrichtigungen sind ausgeschaltet.",
+                    )
                 await SoundNotifier(sound).send(event)
             else:
-                raise ValueError("unsupported_channel")
-        except Exception as exc:
-            results[channel] = {"ok": False, "error": str(exc)}
+                raise NotificationTestError(channel, "unsupported_channel", "Dieser Kanal wird nicht unterstützt.")
+        except NotificationTestError as exc:
+            results[channel] = {
+                "ok": False,
+                "code": exc.code,
+                "message": exc.message,
+                "hint": exc.hint,
+            }
             continue
-        results[channel] = {"ok": True}
+        except asyncio.TimeoutError:
+            results[channel] = {
+                "ok": False,
+                "code": f"{channel}_timeout",
+                "message": "Die Verbindung hat zu lange gedauert. Bitte später noch einmal testen.",
+                "hint": "Prüfe deine Internetverbindung und versuche es erneut.",
+            }
+            continue
+        except aiohttp.ClientError:
+            results[channel] = {
+                "ok": False,
+                "code": f"{channel}_network_error",
+                "message": "Die Verbindung zum Dienst konnte nicht aufgebaut werden.",
+                "hint": "Prüfe Internetverbindung, Firewall und eingegebene Adresse.",
+            }
+            continue
+        except Exception as exc:
+            results[channel] = {
+                "ok": False,
+                "code": f"{channel}_failed",
+                "message": str(exc) or "Unbekannter Fehler.",
+            }
+            continue
+        results[channel] = {"ok": True, "code": "ok", "message": "Testnachricht gesendet."}
     return results
 
 
 def _xml_escape(value: str) -> str:
     return json.dumps(value)[1:-1].replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+async def _read_response_payload(response: aiohttp.ClientResponse) -> dict[str, Any]:
+    try:
+        payload = await response.json(content_type=None)
+    except Exception:
+        try:
+            return {"text": await response.text()}
+        except Exception:
+            return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _telegram_response_error(status: int, payload: dict[str, Any]) -> NotificationTestError:
+    description = str(payload.get("description") or payload.get("text") or "").strip().lower()
+    if status == 401:
+        return NotificationTestError(
+            "telegram",
+            "telegram_invalid_token",
+            "Ungültiger Telegram Bot Token. Bitte bei @BotFather prüfen.",
+            hint="Öffne @BotFather und kopiere den Bot-Token erneut.",
+            status=status,
+        )
+    if status == 400 and ("chat not found" in description or "user not found" in description):
+        return NotificationTestError(
+            "telegram",
+            "telegram_invalid_chat_id",
+            "Ungültige Telegram Chat-ID. Bitte bei @userinfobot prüfen.",
+            hint="Schreibe @userinfobot in Telegram und kopiere die Chat-ID als Zahl.",
+            status=status,
+        )
+    if status in {400, 403} and (
+        "bot can't initiate conversation" in description
+        or "bot was blocked by the user" in description
+        or "forbidden" in description
+    ):
+        return NotificationTestError(
+            "telegram",
+            "telegram_chat_not_started",
+            "Dein Bot kann dir noch nicht schreiben. Starte zuerst einen Chat mit dem Bot.",
+            hint="Suche deinen Bot in Telegram und sende ihm einmal /start.",
+            status=status,
+        )
+    return NotificationTestError(
+        "telegram",
+        "telegram_request_failed",
+        "Telegram hat die Testnachricht abgelehnt. Bitte Token und Chat-ID prüfen.",
+        hint="Prüfe die Angaben bei @BotFather und @userinfobot.",
+        status=status,
+    )
+
+
+def _discord_response_error(status: int, payload: dict[str, Any]) -> NotificationTestError:
+    if status == 404:
+        return NotificationTestError(
+            "discord",
+            "discord_invalid_webhook",
+            "Dieser Discord-Webhook wurde nicht gefunden. Bitte im gewünschten Kanal einen neuen Webhook anlegen.",
+            hint="Öffne in Discord die Kanal-Einstellungen und erstelle dort einen neuen Webhook.",
+            status=status,
+        )
+    if status in {401, 403}:
+        return NotificationTestError(
+            "discord",
+            "discord_forbidden",
+            "Discord hat diesen Webhook abgelehnt. Bitte Webhook-URL prüfen.",
+            hint="Kopiere die komplette Webhook-URL erneut aus dem gewünschten Kanal.",
+            status=status,
+        )
+    if status == 400:
+        return NotificationTestError(
+            "discord",
+            "discord_bad_request",
+            "Discord konnte diese Webhook-URL nicht verwenden. Bitte einen neuen Webhook anlegen.",
+            hint="Erstelle im Zielkanal einen frischen Webhook und kopiere die komplette URL.",
+            status=status,
+        )
+    message = str(payload.get("message") or payload.get("text") or "").strip()
+    return NotificationTestError(
+        "discord",
+        "discord_request_failed",
+        message or "Discord hat die Testnachricht abgelehnt. Bitte Webhook prüfen.",
+        hint="Prüfe, ob die URL vollständig ist und noch zum richtigen Kanal gehört.",
+        status=status,
+    )
