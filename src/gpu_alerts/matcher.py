@@ -7,118 +7,18 @@ import unicodedata
 from gpu_alerts.models import MatchResult
 
 
-GPU_BRANDS = [
-    "asus",
-    "msi",
-    "gigabyte",
-    "zotac",
-    "pny",
-    "inno3d",
-    "kfa2",
-    "galax",
-    "gainward",
-    "palit",
-    "manli",
-    "colorful",
-]
-
-GPU_VARIANTS = [
-    "amp extreme",
-    "solid core",
-    "gaming trio",
-    "gaming oc",
-    "windforce",
-    "proart",
-    "inspire",
-    "expert",
-    "master",
-    "vanguard",
-    "aero",
-    "shadow",
-    "strix",
-    "solid",
-    "trinity",
-    "phoenix",
-    "phoenix s",
-    "ventus",
-    "eagle",
-    "prime",
-    "tuf",
-    "amp",
-    "white",
-    "black",
-    "x3",
-    "oc",
-    "sff",
-]
-
-GENERIC_GPU_TOKENS = {
-    "16gb",
-    "aktiv",
-    "bit",
-    "displayport",
-    "gddr7",
-    "geforce",
-    "grafikkarte",
-    "hdmi",
-    "nvidia",
-    "oc",
-    "pcie",
-    "retail",
-    "rtx",
-    "ti",
-    "x16",
-}
-
-COMPLETE_PC_PHRASES = [
-    "gaming pc",
-    "komplett pc",
-    "komplettsystem",
-    "fertig pc",
-    "desktop pc",
-    "pc system",
-    "system pc",
-    "all in one",
-    "mini pc",
-]
-
-COMPLETE_PC_TERMS = {
-    "pc",
-    "computer",
-    "desktop",
-    "notebook",
-    "laptop",
-    "rechner",
-    "tower",
-    "workstation",
-    "zbox",
-    "barebone",
-}
-
-CPU_TERMS = [
-    "intel core",
-    "core ultra",
-    "ryzen",
-    "threadripper",
-    "xeon",
-    "athlon",
-    "celeron",
-    "pentium",
-]
-
-SYSTEM_SPEC_TERMS = {
-    "ram",
-    "ssd",
-    "hdd",
-    "nvme",
-    "ddr4",
-    "ddr5",
-    "windows 11",
-    "windows 10",
-    "w11",
-    "w11h",
-    "win11",
-    "win10",
+GENERIC_MODEL_STOPWORDS = {
+    "der",
+    "die",
+    "das",
+    "mit",
+    "fur",
+    "und",
+    "inkl",
+    "neu",
+    "new",
+    "bundle",
+    "edition",
 }
 
 
@@ -127,95 +27,86 @@ def normalize_title(title: str) -> str:
     normalized = normalized.encode("ascii", "ignore").decode("ascii")
     normalized = normalized.lower()
     normalized = normalized.replace("™", " ").replace("-", " ").replace("/", " ")
-    normalized = re.sub(r"\b16gb\b|\bgddr7\b|\bgeforce\b", " ", normalized)
+    normalized = re.sub(r"(?<=[a-z])(?=\d)|(?<=\d)(?=[a-z])", " ", normalized)
+    normalized = re.sub(r"\b16\s*gb\b|\bgddr\s*7\b|\bgddr\b|\bgeforce\b|\bgb\b", " ", normalized)
     normalized = re.sub(r"[^a-z0-9 ]+", " ", normalized)
     normalized = re.sub(r"\s+", " ", normalized).strip()
     return normalized
-
-
-def _contains_any(haystack: str, needles: list[str]) -> list[str]:
-    return [needle for needle in needles if needle in haystack]
 
 
 def _fallback_hash(normalized_title: str) -> str:
     return hashlib.sha1(normalized_title.encode("utf-8")).hexdigest()[:12]
 
 
+def _normalized_compact(value: str) -> str:
+    return normalize_title(value).replace(" ", "")
+
+
+def _unique_terms(values: list[str]) -> list[str]:
+    terms: list[str] = []
+    for value in values:
+        normalized = normalize_title(value)
+        if not normalized:
+            continue
+        if normalized not in terms:
+            terms.append(normalized)
+    return terms
+
+
 class ProductMatcher:
-    def match(self, title: str, product_hint: str | None = None) -> MatchResult | None:
+    def match(self, title: str, product_hint: str | None = None, *, include_terms: list[str] | None = None) -> MatchResult | None:
         normalized = normalize_title(title)
-
-        if product_hint == "glinet-flint-2" or self._is_flint_2(normalized):
-            return MatchResult(
-                product_family="glinet-flint-2",
-                canonical_model="glinet-flint-2-gl-mt6000",
-                normalized_title=normalized,
-            )
-
-        is_rtx_5070_ti = self._is_rtx_5070_ti(normalized)
-        # product_hint narrows product family, but never forces a false-positive title.
-        if product_hint == "rtx-5070-ti" and not is_rtx_5070_ti:
+        if not normalized:
             return None
 
-        if is_rtx_5070_ti:
-            if self._looks_like_complete_pc(normalized):
-                return None
-            brand = next((brand for brand in GPU_BRANDS if brand in normalized), "unknown")
-            variants = _contains_any(normalized, GPU_VARIANTS)
-            model_tokens = self._derive_model_tokens(normalized, brand)
-            components = sorted(set(variants))
-            for token in model_tokens:
-                if token not in components:
-                    components.append(token)
-            variant_key = "-".join(components) if components else _fallback_hash(normalized)
-            canonical_model = f"rtx-5070-ti-{brand}-{variant_key}"
-            return MatchResult(
-                product_family="rtx-5070-ti",
-                canonical_model=canonical_model,
-                normalized_title=normalized,
-            )
+        family = (product_hint or "").strip()
+        if not family:
+            return None
 
-        return None
+        match_terms = self._resolve_match_terms(product_hint=family, include_terms=include_terms)
+        if not match_terms:
+            return None
 
-    def _is_flint_2(self, normalized: str) -> bool:
-        if "gl mt6000" in normalized or "glmt6000" in normalized:
+        compact_title = normalized.replace(" ", "")
+        if not all(self._term_present(term, normalized, compact_title) for term in match_terms):
+            return None
+
+        return MatchResult(
+            product_family=family,
+            canonical_model=self._build_generic_model_key(family, normalized, match_terms),
+            normalized_title=normalized,
+        )
+
+    def _resolve_match_terms(self, *, product_hint: str, include_terms: list[str] | None) -> list[str]:
+        explicit_terms = _unique_terms(include_terms or [])
+        if explicit_terms:
+            return explicit_terms
+
+        normalized_hint = normalize_title(product_hint)
+        tokens = [token for token in normalized_hint.split() if token and token not in GENERIC_MODEL_STOPWORDS]
+        return list(dict.fromkeys(tokens))
+
+    @staticmethod
+    def _term_present(term: str, normalized_title: str, compact_title: str) -> bool:
+        if term in normalized_title:
             return True
-        return "flint 2" in normalized and "gl inet" in normalized
+        compact_term = term.replace(" ", "")
+        return bool(compact_term and compact_term in compact_title)
 
-    def _is_rtx_5070_ti(self, normalized: str) -> bool:
-        compact = normalized.replace(" ", "")
-        if "5070ti" not in compact:
-            return False
-        return "rtx" in compact or "geforce" in compact
-
-    def _looks_like_complete_pc(self, normalized: str) -> bool:
-        if any(phrase in normalized for phrase in COMPLETE_PC_PHRASES):
-            return True
-
-        tokens = set(normalized.split())
-        if COMPLETE_PC_TERMS & tokens:
-            return True
-
-        has_cpu = any(term in normalized for term in CPU_TERMS)
-        has_system_specs = any(term in normalized for term in SYSTEM_SPEC_TERMS)
-        if has_cpu and has_system_specs:
-            return True
-
-        return False
-
-    def _derive_model_tokens(self, normalized: str, brand: str) -> list[str]:
-        tokens = []
+    def _build_generic_model_key(self, product_hint: str, normalized: str, match_terms: list[str]) -> str:
+        normalized_match_terms = [term.replace(" ", "") for term in match_terms]
+        components: list[str] = []
         for token in normalized.split():
-            if token == brand:
+            compact_token = token.replace(" ", "")
+            if compact_token in normalized_match_terms:
                 continue
-            if token in GENERIC_GPU_TOKENS:
+            if token in GENERIC_MODEL_STOPWORDS:
                 continue
-            if token.isdigit():
-                continue
-            if "5070" in token:
+            if token.isdigit() and len(token) == 1:
                 continue
             if len(token) <= 1:
                 continue
-            if token not in tokens:
-                tokens.append(token)
-        return tokens[:3]
+            if token not in components:
+                components.append(token)
+        slug = "-".join(components[:6]) if components else _fallback_hash(normalized)
+        return f"{product_hint}-{slug}"

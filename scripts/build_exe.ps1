@@ -25,9 +25,7 @@ function Get-PythonLauncher {
         (Join-Path $env:WINDIR "py.exe"),
         (Join-Path $env:LOCALAPPDATA "Programs\Python\Python312\python.exe"),
         (Join-Path $env:LOCALAPPDATA "Programs\Python\Python313\python.exe"),
-        "C:\Windows\py.exe",
-        "C:\Users\Ivo\AppData\Local\Programs\Python\Python312\python.exe",
-        "C:\Users\Ivo\AppData\Local\Programs\Python\Python313\python.exe"
+        "C:\Windows\py.exe"
     )
     foreach ($path in $knownPaths) {
         if ($path -and (Test-Path $path)) {
@@ -45,6 +43,23 @@ $BuildPython = Join-Path $BuildVenv "Scripts\python.exe"
 $ResolvedOutputDir = $OutputDir
 if (-not [System.IO.Path]::IsPathRooted($ResolvedOutputDir)) {
     $ResolvedOutputDir = Join-Path $ProjectRoot $ResolvedOutputDir
+}
+
+function Wait-ForPath {
+    param(
+        [string]$Path,
+        [int]$TimeoutSeconds = 10,
+        [int]$PollMilliseconds = 250
+    )
+
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    while ((Get-Date) -lt $deadline) {
+        if (Test-Path $Path) {
+            return $true
+        }
+        Start-Sleep -Milliseconds $PollMilliseconds
+    }
+    return (Test-Path $Path)
 }
 
 if (-not (Test-Path $BuildPython)) {
@@ -65,7 +80,7 @@ if (-not (Test-Path $BuildPython)) {
     }
 }
 
-if (-not (Test-Path $BuildPython)) {
+if (-not (Wait-ForPath -Path $BuildPython -TimeoutSeconds 10)) {
     throw "Build-Venv konnte nicht erstellt werden. Erwartet: $BuildPython"
 }
 
@@ -116,6 +131,8 @@ Invoke-BuildPython @(
     (Join-Path $ProjectRoot "scripts\alertivo_exe_entry.py")
 )
 
+Start-Sleep -Milliseconds 750
+
 $BundleDir = Join-Path $ResolvedOutputDir "bundle"
 New-Item -ItemType Directory -Force -Path $BundleDir | Out-Null
 
@@ -125,6 +142,14 @@ $exeCandidates = @(
     (Join-Path $ProjectRoot "dist/windows/Alertivo.exe")
 )
 $ExePath = $exeCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+if (-not $ExePath) {
+    foreach ($candidate in $exeCandidates) {
+        if (Wait-ForPath -Path $candidate -TimeoutSeconds 5) {
+            $ExePath = $candidate
+            break
+        }
+    }
+}
 if (-not $ExePath -and (Test-Path $ResolvedOutputDir)) {
     $found = Get-ChildItem -Path $ResolvedOutputDir -Filter "Alertivo.exe" -File -Recurse -ErrorAction SilentlyContinue |
         Sort-Object LastWriteTime -Descending |
@@ -138,7 +163,7 @@ if (-not $ExePath) {
 }
 
 Copy-Item $ExePath (Join-Path $BundleDir "Alertivo.exe") -Force
-Copy-Item (Join-Path $ProjectRoot "config") (Join-Path $BundleDir "config") -Recurse -Force
+Copy-Item (Join-Path $ProjectRoot "system.json") (Join-Path $BundleDir "system.json") -Force
 if (Test-Path (Join-Path $ProjectRoot "assets")) {
     Copy-Item (Join-Path $ProjectRoot "assets") (Join-Path $BundleDir "assets") -Recurse -Force
 }
@@ -150,8 +175,7 @@ $hiddenStarter = @'
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ExePath = Join-Path $ScriptDir "Alertivo.exe"
-$ConfigPath = Join-Path $ScriptDir "config\monitor.yaml"
-$EnvPath = Join-Path $ScriptDir "config\alerts.env.ps1"
+$ConfigPath = Join-Path $ScriptDir "system.json"
 $SetupPath = Join-Path $ScriptDir "first-run-setup.ps1"
 
 if (-not (Test-Path $ExePath)) {
@@ -159,14 +183,11 @@ if (-not (Test-Path $ExePath)) {
 }
 
 if (Test-Path $SetupPath) {
-    & $SetupPath -EnvPath $EnvPath
+    & $SetupPath -SystemPath $ConfigPath
 }
 
 Start-Process -WindowStyle Hidden -FilePath $ExePath -ArgumentList @(
-    "--config", $ConfigPath,
-    "--env", $EnvPath,
-    "--profile", (Join-Path $ScriptDir "config\user-profile.json"),
-    "--migration-state", (Join-Path $ScriptDir "config\monitor-config.json")
+    "--config", $ConfigPath
 )
 '@
 Set-Content -Path (Join-Path $BundleDir "start-alertivo-hidden.ps1") -Value $hiddenStarter -Encoding UTF8
@@ -174,7 +195,12 @@ Set-Content -Path (Join-Path $BundleDir "start-alertivo-hidden.ps1") -Value $hid
 $runBat = @"
 @echo off
 setlocal
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0start-alertivo-hidden.ps1"
+set "POWERSHELL_EXE=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
+if exist "%POWERSHELL_EXE%" (
+  "%POWERSHELL_EXE%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0start-alertivo-hidden.ps1"
+) else (
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0start-alertivo-hidden.ps1"
+)
 exit /b 0
 "@
 Set-Content -Path (Join-Path $BundleDir "run-alertivo.bat") -Value $runBat -Encoding ASCII

@@ -1,6 +1,5 @@
 param(
-    [string]$ConfigPath = "config/monitor.yaml",
-    [string]$EnvPath = "config/alerts.env.ps1",
+    [string]$ConfigPath = "system.json",
     [switch]$RegisterTasks,
     [switch]$OpenDistillTargets
 )
@@ -26,25 +25,9 @@ function Reset-PythonEnvironment {
 
 Reset-PythonEnvironment
 
-$ResolvedEnvPath = $EnvPath
-if (-not [System.IO.Path]::IsPathRooted($ResolvedEnvPath)) {
-    $ResolvedEnvPath = Join-Path $ProjectRoot $ResolvedEnvPath
-}
-
 $ResolvedConfigPath = $ConfigPath
 if (-not [System.IO.Path]::IsPathRooted($ResolvedConfigPath)) {
     $ResolvedConfigPath = Join-Path $ProjectRoot $ResolvedConfigPath
-}
-
-if (-not (Test-Path $ResolvedEnvPath)) {
-    Copy-Item (Join-Path $ProjectRoot "config\alerts.env.ps1.example") $ResolvedEnvPath
-}
-
-$envContent = Get-Content $ResolvedEnvPath -Raw
-if ($envContent -match "replace-me-long-random-string") {
-    $randomToken = [guid]::NewGuid().ToString("N") + [guid]::NewGuid().ToString("N")
-    $envContent = $envContent -replace "replace-me-long-random-string", $randomToken
-    Set-Content -Path $ResolvedEnvPath -Value $envContent -Encoding UTF8
 }
 
 function Get-PythonLauncher {
@@ -133,10 +116,8 @@ Push-Location $TempWorkdir
 & $Python -m pip install --disable-pip-version-check -e "$ProjectRoot"
 Pop-Location
 
-. $ResolvedEnvPath
-
 Push-Location $TempWorkdir
-& $Python (Join-Path $ProjectRoot "scripts\validate_setup.py") --config $ResolvedConfigPath --env $ResolvedEnvPath
+& $Python (Join-Path $ProjectRoot "scripts\validate_setup.py") --config $ResolvedConfigPath
 Pop-Location
 
 if ($OpenDistillTargets) {
@@ -144,14 +125,13 @@ if ($OpenDistillTargets) {
 }
 
 if ($RegisterTasks) {
-    & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $ProjectRoot "scripts\register_tasks.ps1") -ConfigPath $ConfigPath -EnvPath $EnvPath
+    Write-Warning "Der Task-Scheduler-Flow ist veraltet. Aktiviere Autostart direkt im Alertivo Control Center."
 }
 
 Write-Host ""
 Write-Host "Ready state:"
-Write-Host " - Env file: $ResolvedEnvPath"
 Write-Host " - Config file: $ResolvedConfigPath"
 Write-Host " - Virtualenv: $Python"
 Write-Host ""
 Write-Host "Start command:"
-Write-Host " .\scripts\start_alertivo.ps1 -ConfigPath $ConfigPath -EnvPath $EnvPath"
+Write-Host " .\scripts\start_alertivo.ps1 -ConfigPath $ConfigPath"

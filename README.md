@@ -1,158 +1,89 @@
 # Alertivo Desktop
 
-Lokale Windows-Desktop-App fuer Alerts und Monitoring mit:
-- `GL.iNet Flint 2 / GL-MT6000`
-- `Nvidia RTX 5070 Ti` inklusive AIB-Varianten
+Alertivo ist eine lokale Windows-Desktop-App fuer Produkt- und Restock-Monitoring. Die App ist nicht mehr auf einzelne Produkte fest verdrahtet. Stattdessen verwaltet sie beliebige Suchprofile als Tracker mit eigenen Include-/Exclude-Filtern und Shop-Zielen.
 
-Die Kernlogik ist absichtlich nicht auf historische Tiefstpreise ausgelegt. Ein Alert entsteht nur dann, wenn ein neu erkannter Preis unter dem zuletzt gesehenen Preis liegt oder wenn ein neues Listing unter der letzten bekannten Shop-Referenz auftaucht.
+## Kernpunkte
+- generische Tracker statt hart codierter Produktlogik in der Konfiguration
+- lokale App-Daten unter `%APPDATA%\Alertivo`
+- Control Center unter `http://127.0.0.1:8787/control-center`
+- Distill-Webhook mit automatisch generiertem JSON-Snippet pro Tracker und Shop
+- Benachrichtigungen fuer Telegram, Discord, Windows-Toast, Sound und Konsole
 
-## Features
-- SQLite-State pro `shop + canonical_model + offer_url`
-- Dedupe für identische `shop + canonical_model + price`
-- Re-Alert nach Zwischenpreisänderung
-- Produkt-Matching für `GL-MT6000` und `RTX 5070 Ti`
-- Polling für HTML-Seiten mit CSS-Selektoren
-- Webhook-Endpunkt für Distill oder andere lokale Browser-Monitore
-- Lokales Control Center mit Live-Status, Event-/Offer-Ansicht und editierbaren Quellenregeln
-- Notifier für Telegram, Discord, Windows-Toast, Sound und Konsole
+## Konfigurationsmodell
+Installationsverzeichnis:
+- `system.json`
 
-## Projektstruktur
-- `src/gpu_alerts/collectors/`: HTML-Poller
-- `src/gpu_alerts/matcher.py`: Titel-Normalisierung und Canonical-Mapping
-- `src/gpu_alerts/engine.py`: Preislogik, Dedupe, Restock
-- `src/gpu_alerts/storage.py`: SQLite
-- `src/gpu_alerts/notifiers.py`: Alert-Kanäle
-- `src/gpu_alerts/webhook.py`: lokaler Webhook für Distill
-- `config/monitor.example.yaml`: Startkonfiguration
-- `config/http-sources.example.yaml`: konkrete HTTP-Profile für Geizhals, Alternate, Mindfactory
-- `config/distill-profiles.example.yaml`: konkrete Distill-Profile für blockige/JS-lastige Shops
-- `docs/shop-matrix.md`: Shop-Matrix mit Strategie und Intervallen
-- `scripts/*.ps1`: Windows-Start und Task Scheduler
+Benutzerdaten unter `%APPDATA%\Alertivo`:
+- `settings.json`
+- `trackers\*.json`
+- `data\alerts.sqlite`
+- `logs\`
+- `state\migration.json`
+
+`system.json` enthaelt technische Defaults wie Port, Logging und Speicherorte. `settings.json` enthaelt nutzerspezifische Daten wie Tokens, UI-Optionen und Distill-Webhook-Token. Jeder Tracker lebt als eigene JSON-Datei in `trackers\`.
 
 ## Schnellstart unter Windows
 1. Python 3.12 installieren.
-2. Projektordner öffnen.
-3. Optional zuerst alles vorbereiten:
+2. Im Projektordner `.\scripts\setup_ready.ps1` ausfuehren.
+3. Die App mit `.\scripts\start_alertivo.ps1` starten.
+4. Im Browser `http://127.0.0.1:8787/control-center` oeffnen.
+5. Im Onboarding Benachrichtigungen konfigurieren und den ersten Tracker anlegen.
 
-```powershell
-.\scripts\setup_ready.ps1 -ConfigPath config/monitor.yaml -EnvPath config/alerts.env.ps1
-```
+Es ist kein manuelles Kopieren von `.env`-Dateien und kein Bearbeiten von `monitor.yaml` mehr notwendig.
 
-4. In `config/alerts.env.ps1` nur noch Telegram- und Discord-Daten ergänzen.
-5. In PowerShell starten:
-
-```powershell
-.\scripts\start_alertivo.ps1 -ConfigPath config/monitor.yaml
-```
-
-Danach ist das lokale Control Center unter `http://127.0.0.1:8787/control-center` erreichbar.
-
-Eine konkrete Windows-Startanleitung liegt in [windows-live-setup.md](/mnt/c/Users/Ivo/Desktop/GPU/docs/windows-live-setup.md).
-
-## EXE Build (Windows)
-Du kannst eine eigenstaendige `Alertivo.exe` bauen:
-
+## EXE Build
 ```powershell
 .\scripts\build_exe.ps1
 ```
 
-Ergebnis:
+Das Windows-Bundle enthaelt:
 - `dist\windows\bundle\Alertivo.exe`
 - `dist\windows\bundle\run-alertivo.bat`
 - `dist\windows\bundle\start-alertivo-hidden.ps1`
+- `dist\windows\bundle\system.json`
 
-`run-alertivo.bat` startet die Desktop-App im Hintergrund (ohne sichtbares Dauer-CMD).
-Beim ersten Start erscheint ein minimales KISS-Setup ohne Pflicht-Webhook.
+Nutzerveraenderliche Daten landen beim Start automatisch unter `%APPDATA%\Alertivo`.
 
-Der Launcher verwendet:
-- `config\monitor.yaml`
-- `config\alerts.env.ps1`
-- `config\user-profile.json`
-- `config\monitor-config.json`
+## Distill-Integration
+Der Distill-Webhook laeuft lokal unter:
+- `http://127.0.0.1:8787/webhook/distill`
 
-Relativ zum Bundle-Ordner. Passe davor `config\alerts.env.ps1` an.
+Die benoetigten Header und das passende JSON fuer jeden Tracker erzeugt das Control Center dynamisch. Das Copy-and-paste-Snippet wird aus dem gespeicherten Distill-Token, dem Tracker und dem ausgewaehlten Shop erzeugt.
 
-## Distill-Integration für 10-30s Shop-Checks
-Die schnellsten direkten Shopchecks solltest du in Distill lokal konfigurieren und das Ergebnis an den lokalen Webhook schicken:
-
-- URL: `http://127.0.0.1:8787/webhook/distill`
-- Header: `X-Webhook-Token: <dein WEBHOOK_TOKEN>`
-- Body als JSON:
-
-```json
-{
-  "shop": "mindfactory",
-  "source": "shop",
-  "scope": "shop_search",
-  "title": "ASUS GeForce RTX 5070 Ti TUF OC",
-  "url": "https://www.mindfactory.de/product_info.php/...",
-  "price": "879,00 €",
-  "in_stock": "lagernd",
-  "product_hint": "rtx-5070-ti"
-}
-```
-
-Für `GL.iNet Flint 2`:
-
-```json
-{
-  "shop": "amazon",
-  "source": "shop",
-  "scope": "shop_product",
-  "title": "GL.iNet GL-MT6000 (Flint 2)",
-  "url": "https://www.amazon.de/dp/...",
-  "price": "163,99 €",
-  "in_stock": "Auf Lager",
-  "product_hint": "glinet-flint-2"
-}
-```
-
-Zum Testen der kompletten lokalen Webhook-Kette:
-
+Zum Testen der lokalen Webhook-Kette:
 ```powershell
-py -3.12 .\scripts\send_test_webhook.py --token $env:WEBHOOK_TOKEN
+.\scripts\send_test_webhook.ps1
 ```
 
-## Konkrete Shopprofile
-- Direkte HTTP-Profile: [http-sources.example.yaml](/mnt/c/Users/Ivo/Desktop/GPU/config/http-sources.example.yaml)
-- Distill-Profile: [distill-profiles.example.yaml](/mnt/c/Users/Ivo/Desktop/GPU/config/distill-profiles.example.yaml)
-- Shop-Matrix und Strategie: [shop-matrix.md](/mnt/c/Users/Ivo/Desktop/GPU/docs/shop-matrix.md)
-- konkrete Distill-Checkliste: [distill-checklist.md](/mnt/c/Users/Ivo/Desktop/GPU/docs/distill-checklist.md)
-- schnelle Arbeitsliste: [30min-setup-checklist.md](/mnt/c/Users/Ivo/Desktop/GPU/docs/30min-setup-checklist.md)
+Optional kannst du gezielt einen Tracker testen:
+```powershell
+.\scripts\send_test_webhook.ps1 -TrackerId ps5-pro
+```
 
-Empfohlener Minimalbetrieb:
-- `Alternate`, `Geizhals` und `Mindfactory` direkt über den Python-Poller
-- `Mindfactory` im Repo bewusst über lokalen `curl`-Command-Collector statt normalem HTTP-Client
-- `Amazon`, `Caseking`, `NBB`, `Cyberport`, `Galaxus`, `MediaMarkt`, `Saturn`, `Proshop`, `Computeruniverse`, `ASUS Store` über Distill -> Webhook
+## Legacy-Migration
+Beim ersten Start importiert Alertivo vorhandene Altdateien automatisch, falls sie im Installationsverzeichnis unter `config\` liegen:
+- `monitor.yaml`
+- `alerts.env.ps1`
+- `user-profile.json`
 
-## Entscheidungslogik
-- Bestehendes Angebot:
-  - Alert bei `new_price < last_seen_price`
-  - Kein erneuter Alert bei identischem Preis, solange dazwischen kein anderer Preis gesehen wurde
-- Neues Angebot:
-  - Alert bei `new_price < reference_price`
-  - `reference_price` ist zuerst der letzte bekannte Preis derselben Canonical-Variante im Shop, sonst der niedrigste bekannte Familienpreis im Shop
-- Restock:
-  - Optionaler separater Alert bei `out_of_stock -> in_stock`
+Der Import schreibt die neue Struktur nach `%APPDATA%\Alertivo` und legt den Migrationsstatus unter `state\migration.json` ab. Die alten YAML-/PowerShell-Dateien sind danach nur noch Legacy-Eingaben, nicht mehr das aktive Konfigurationsmodell.
+
+Im Source-Checkout wird dieser Repo-Legacy-Import standardmaessig uebersprungen, damit ein frischer Start nicht versehentlich Beispiel- oder Entwicklerdateien uebernimmt. Fuer explizite Migrationstests kann er mit `ALERTIVO_IMPORT_LEGACY_FROM_REPO=1` wieder aktiviert werden.
+
+## Projektstruktur
+- `src/gpu_alerts/config.py`: JSON-Loader, Persistenz, Shop-Katalog, Legacy-Import
+- `src/gpu_alerts/control_center.py`: Web-UI und API fuer Settings, Tracker und Runtime
+- `src/gpu_alerts/engine.py`: Preislogik, Dedupe, Restock
+- `src/gpu_alerts/storage.py`: SQLite
+- `src/gpu_alerts/webhook.py`: lokaler Distill-Webhook
+- `scripts/*.ps1`: Windows-Start, Build und Hilfsskripte
 
 ## Tests
-
 ```powershell
 py -3.12 -m pip install -e ".[dev]"
 py -3.12 -m pytest
 ```
 
-Abgedeckt sind:
-- einfacher Preisdrop
-- Dedupe bei gleichem Preis
-- erneuter Alert nach Zwischenpreisänderung
-- neues günstigeres Listing im selben Shop
-- Flint-2-Matching
-- RTX-5070-Ti-Canonicalisierung
-
-## Hinweise zum realen Betrieb
-- Nutze `Geizhals` und `idealo` als breite Discovery-Layer mit 60-180s Intervall.
-- Nutze Distill lokal für 3-8 kritische Shopseiten mit 10-30s Intervall.
-- Für GPU-Restocks zusätzlich `FE PartAlert`, `Notify-FE`, `mydealz` und Discord-/Telegram-Dropkanäle abonnieren.
-- Bei JS-lastigen Shops ist Distill oft robuster als ein reiner HTML-Poller.
-- Viele große Shops liefern aktuell bei direkten Requests `403`, `503` oder Captcha/Challenge. Diese Shops sind bewusst als `Distill-only` dokumentiert statt mit fragilen Poller-Regeln.
+## Hinweise
+- `config/*.yaml` und einige Detaildokumente im Repo bleiben als Legacy-Beispiele und fuer Migrationstests erhalten.
+- Shop-spezifische Parser und Fallbacks bleiben intern im Code und werden nicht als Endnutzer-JSON exponiert.

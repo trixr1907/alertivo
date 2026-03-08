@@ -20,22 +20,12 @@ class AlertEngine:
         *,
         enable_restock_alerts: bool,
         new_listing_reference_min_age_seconds: int = 60,
-        rtx_5070_ti_exclude_complete_pc_terms: list[str] | None = None,
-        rtx_5070_ti_exclude_notebook_terms: list[str] | None = None,
-        rtx_5070_ti_exclude_bundle_terms: list[str] | None = None,
-        rtx_5070_ti_exclude_defect_terms: list[str] | None = None,
     ):
         self._storage = storage
         self._matcher = matcher
         self._notifiers = notifiers
         self._enable_restock_alerts = enable_restock_alerts
         self._new_listing_reference_min_age_seconds = new_listing_reference_min_age_seconds
-        self._rtx_5070_ti_exclude_groups = {
-            "complete_pc": list(rtx_5070_ti_exclude_complete_pc_terms or []),
-            "notebook": list(rtx_5070_ti_exclude_notebook_terms or []),
-            "bundle": list(rtx_5070_ti_exclude_bundle_terms or []),
-            "defect": list(rtx_5070_ti_exclude_defect_terms or []),
-        }
         self._lock = asyncio.Lock()
 
     @property
@@ -54,53 +44,23 @@ class AlertEngine:
     def new_listing_reference_min_age_seconds(self, value: int) -> None:
         self._new_listing_reference_min_age_seconds = int(value)
 
-    @property
-    def rtx_5070_ti_exclude_complete_pc_terms(self) -> list[str]:
-        return list(self._rtx_5070_ti_exclude_groups["complete_pc"])
-
-    @rtx_5070_ti_exclude_complete_pc_terms.setter
-    def rtx_5070_ti_exclude_complete_pc_terms(self, values: list[str]) -> None:
-        self._rtx_5070_ti_exclude_groups["complete_pc"] = list(values)
-
-    @property
-    def rtx_5070_ti_exclude_notebook_terms(self) -> list[str]:
-        return list(self._rtx_5070_ti_exclude_groups["notebook"])
-
-    @rtx_5070_ti_exclude_notebook_terms.setter
-    def rtx_5070_ti_exclude_notebook_terms(self, values: list[str]) -> None:
-        self._rtx_5070_ti_exclude_groups["notebook"] = list(values)
-
-    @property
-    def rtx_5070_ti_exclude_bundle_terms(self) -> list[str]:
-        return list(self._rtx_5070_ti_exclude_groups["bundle"])
-
-    @rtx_5070_ti_exclude_bundle_terms.setter
-    def rtx_5070_ti_exclude_bundle_terms(self, values: list[str]) -> None:
-        self._rtx_5070_ti_exclude_groups["bundle"] = list(values)
-
-    @property
-    def rtx_5070_ti_exclude_defect_terms(self) -> list[str]:
-        return list(self._rtx_5070_ti_exclude_groups["defect"])
-
-    @rtx_5070_ti_exclude_defect_terms.setter
-    def rtx_5070_ti_exclude_defect_terms(self, values: list[str]) -> None:
-        self._rtx_5070_ti_exclude_groups["defect"] = list(values)
-
     async def process(self, observation: OfferObservation) -> AlertEvent | None:
         async with self._lock:
             normalized_title = normalize_title(observation.title)
             if self._should_exclude(observation, normalized_title):
                 return None
 
-            match = self._matcher.match(observation.title, observation.product_hint)
+            match = self._matcher.match(
+                observation.title,
+                observation.product_hint,
+                include_terms=observation.include_title_terms,
+            )
             if not match:
                 return None
 
             observation.product_family = match.product_family
             observation.canonical_model = match.canonical_model
             observation.normalized_title = match.normalized_title
-            if self._should_exclude_family(observation.product_family, normalized_title):
-                return None
 
             status_hash = self._status_hash(observation)
             existing = self._storage.get_offer(*observation.offer_key)
@@ -192,17 +152,16 @@ class AlertEngine:
 
     @staticmethod
     def _should_exclude(observation: OfferObservation, normalized_title: str) -> bool:
+        include_terms = [normalize_title(term) for term in observation.include_title_terms if term]
+        if include_terms and not all(term in normalized_title for term in include_terms):
+            return True
+
         for term in observation.exclude_title_terms:
             if normalize_title(term) in normalized_title:
                 return True
-        return False
 
-    def _should_exclude_family(self, product_family: str | None, normalized_title: str) -> bool:
-        if product_family == "rtx-5070-ti":
-            for terms in self._rtx_5070_ti_exclude_groups.values():
-                for term in terms:
-                    if normalize_title(term) in normalized_title:
-                        return True
+        if observation.price is not None and observation.price_ceiling is not None and observation.price > observation.price_ceiling:
+            return True
         return False
 
     @staticmethod

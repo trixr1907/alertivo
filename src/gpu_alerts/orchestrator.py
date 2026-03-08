@@ -13,7 +13,6 @@ import aiohttp
 from gpu_alerts.config import AppConfig, SourceConfig, load_config
 from gpu_alerts.control_center import MonitorRuntime
 from gpu_alerts.engine import AlertEngine
-from gpu_alerts.env_loader import load_powershell_env
 from gpu_alerts.main import build_collectors, poll_once
 from gpu_alerts.matcher import ProductMatcher
 from gpu_alerts.notifiers import build_notifier_manager
@@ -28,6 +27,7 @@ LOGGER = logging.getLogger(__name__)
 class OrchestratorStatus:
     state: str
     paused: bool
+    monitoring_active: bool
     started_at: float | None
     control_center_url: str | None
     webhook_url: str | None
@@ -38,6 +38,7 @@ class OrchestratorStatus:
         return {
             "state": self.state,
             "paused": self.paused,
+            "monitoring_active": self.monitoring_active,
             "started_at": self.started_at,
             "control_center_url": self.control_center_url,
             "webhook_url": self.webhook_url,
@@ -51,14 +52,12 @@ class MonitorOrchestrator:
         self,
         *,
         config_path: str | Path,
-        env_path: str | Path | None = None,
-        profile_path: str | Path | None = None,
+        settings_path: str | Path | None = None,
         migration_state_path: str | Path | None = None,
         autostart_launcher: str | Path | None = None,
     ):
         self._config_path = Path(config_path).resolve()
-        self._env_path = Path(env_path).resolve() if env_path else None
-        self._profile_path = Path(profile_path).resolve() if profile_path else None
+        self._settings_path = Path(settings_path).resolve() if settings_path else None
         self._migration_state_path = Path(migration_state_path).resolve() if migration_state_path else None
         self._autostart_launcher = Path(autostart_launcher).resolve() if autostart_launcher else None
         self._thread: threading.Thread | None = None
@@ -71,6 +70,7 @@ class MonitorOrchestrator:
         self._status = OrchestratorStatus(
             state="stopped",
             paused=False,
+            monitoring_active=False,
             started_at=None,
             control_center_url=None,
             webhook_url=None,
@@ -103,6 +103,7 @@ class MonitorOrchestrator:
             if not thread:
                 self._status.state = "stopped"
                 self._status.paused = False
+                self._status.monitoring_active = False
                 self._status.thread_alive = False
                 return
             self._status.state = "stopping"
@@ -117,6 +118,7 @@ class MonitorOrchestrator:
             self._resume_event = None
             self._status.state = "stopped"
             self._status.paused = False
+            self._status.monitoring_active = False
             self._status.thread_alive = False
 
     def restart(self) -> None:
@@ -133,6 +135,7 @@ class MonitorOrchestrator:
             if self._status.state == "running":
                 self._status.state = "paused"
             self._status.paused = True
+            self._status.monitoring_active = False
 
     def resume(self) -> None:
         loop = self._loop
@@ -143,6 +146,33 @@ class MonitorOrchestrator:
         with self._lock:
             self._status.state = "running"
             self._status.paused = False
+            self._status.monitoring_active = True
+
+    def stop_monitoring(self) -> None:
+        loop = self._loop
+        resume_event = self._resume_event
+        if not loop or not resume_event:
+            return
+        loop.call_soon_threadsafe(resume_event.clear)
+        with self._lock:
+            self._status.state = "idle"
+            self._status.paused = False
+            self._status.monitoring_active = False
+
+    def start_monitoring(self) -> None:
+        loop = self._loop
+        resume_event = self._resume_event
+        if not loop or not resume_event:
+            return
+        loop.call_soon_threadsafe(resume_event.set)
+        with self._lock:
+            self._status.state = "running"
+            self._status.paused = False
+            self._status.monitoring_active = True
+
+    def is_monitoring_active(self) -> bool:
+        with self._lock:
+            return self._status.monitoring_active
 
     def status(self) -> dict[str, Any]:
         with self._lock:
@@ -162,6 +192,7 @@ class MonitorOrchestrator:
             with self._lock:
                 self._status.state = "error"
                 self._status.last_error = str(exc)
+                self._status.monitoring_active = False
             if not self._startup_event.is_set():
                 self._startup_error = exc
                 self._startup_event.set()
@@ -169,6 +200,7 @@ class MonitorOrchestrator:
             with self._lock:
                 if self._status.state not in {"error", "stopped"}:
                     self._status.state = "stopped"
+                self._status.monitoring_active = False
                 self._status.thread_alive = False
 
     async def _run_async(self) -> None:
@@ -177,8 +209,6 @@ class MonitorOrchestrator:
         self._resume_event = asyncio.Event()
         self._resume_event.set()
 
-        if self._env_path:
-            load_powershell_env(self._env_path)
         config = load_config(self._config_path)
         self._status.control_center_url = f"http://{config.webhook.host}:{config.webhook.port}/control-center"
         self._status.webhook_url = f"http://{config.webhook.host}:{config.webhook.port}{config.webhook.path}"
@@ -195,6 +225,7 @@ class MonitorOrchestrator:
         with self._lock:
             self._status.state = "running"
             self._status.paused = False
+            self._status.monitoring_active = True
             self._status.started_at = time.time()
             self._status.thread_alive = True
 
@@ -212,10 +243,6 @@ class MonitorOrchestrator:
                 notifiers,
                 enable_restock_alerts=config.enable_restock_alerts,
                 new_listing_reference_min_age_seconds=config.new_listing_reference_min_age_seconds,
-                rtx_5070_ti_exclude_complete_pc_terms=config.rtx_5070_ti_exclude_complete_pc_terms,
-                rtx_5070_ti_exclude_notebook_terms=config.rtx_5070_ti_exclude_notebook_terms,
-                rtx_5070_ti_exclude_bundle_terms=config.rtx_5070_ti_exclude_bundle_terms,
-                rtx_5070_ti_exclude_defect_terms=config.rtx_5070_ti_exclude_defect_terms,
             )
             runner = await start_webhook_server(
                 engine,
@@ -229,8 +256,8 @@ class MonitorOrchestrator:
                 token=config.webhook.token,
                 webhook_enabled=config.webhook.enabled,
                 runtime_controller=self,
-                profile_path=self._profile_path,
-                migration_state_path=self._migration_state_path,
+                profile_path=self._settings_path or config.settings_path,
+                migration_state_path=self._migration_state_path or config.migration_state_path,
                 autostart_launcher=self._autostart_launcher,
             )
             if not self._startup_event.is_set():
@@ -272,12 +299,8 @@ class MonitorOrchestrator:
                 break
             if source.enabled:
                 await poll_once(source, collector, engine, runtime)
-            await self._sleep_or_stop(source.interval_seconds)
-
-    async def _sleep_or_stop(self, seconds: int) -> None:
-        assert self._stop_event is not None
-        target = max(1, int(seconds))
-        elapsed = 0
-        while elapsed < target and not self._stop_event.is_set():
-            await asyncio.sleep(min(1, target - elapsed))
-            elapsed += 1
+            wait_for = min(max(source.interval_seconds, 1), 3600)
+            try:
+                await asyncio.wait_for(self._stop_event.wait(), timeout=wait_for)
+            except asyncio.TimeoutError:
+                continue

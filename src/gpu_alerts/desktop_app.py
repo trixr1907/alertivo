@@ -8,7 +8,7 @@ import webbrowser
 from pathlib import Path
 from typing import Any
 
-from gpu_alerts.migration import ensure_monitor_config_state
+from gpu_alerts.config import load_config
 from gpu_alerts.orchestrator import MonitorOrchestrator
 from gpu_alerts.profile import load_user_profile, save_user_profile
 from gpu_alerts.tray_state import TrayState
@@ -36,11 +36,11 @@ class DesktopController:
         orchestrator: MonitorOrchestrator,
         *,
         app_name: str = "Alertivo",
-        profile_path: Path | None = None,
+        settings_path: Path | None = None,
     ):
         self._orchestrator = orchestrator
         self._app_name = app_name
-        self._profile_path = profile_path
+        self._settings_path = settings_path
         self._tray_state = TrayState()
         self._tray_icon = None
         self._window = None
@@ -92,12 +92,13 @@ class DesktopController:
         except Exception:
             LOGGER.exception("Could not open window")
 
-    def pause_resume(self) -> None:
-        action = self._tray_state.toggle_pause_resume()
-        if action == "paused":
-            self._orchestrator.pause()
-        else:
-            self._orchestrator.resume()
+    def start_monitoring(self) -> None:
+        self._tray_state.start_monitoring()
+        self._orchestrator.start_monitoring()
+
+    def stop_monitoring(self) -> None:
+        self._tray_state.stop_monitoring()
+        self._orchestrator.stop_monitoring()
 
     def restart(self) -> None:
         self._orchestrator.restart()
@@ -117,7 +118,8 @@ class DesktopController:
             return
         menu = pystray.Menu(
             pystray.MenuItem("Open", lambda icon, item: self.open_window()),
-            pystray.MenuItem("Pause/Resume Monitoring", lambda icon, item: self.pause_resume()),
+            pystray.MenuItem("Start Monitoring", lambda icon, item: self.start_monitoring()),
+            pystray.MenuItem("Stop Monitoring", lambda icon, item: self.stop_monitoring()),
             pystray.MenuItem("Restart Monitoring", lambda icon, item: self.restart()),
             pystray.MenuItem("Exit", lambda icon, item: self.exit()),
         )
@@ -126,10 +128,10 @@ class DesktopController:
         self._tray_thread.start()
 
     def _close_to_tray_enabled(self) -> bool:
-        if not self._profile_path:
+        if not self._settings_path:
             return False
         try:
-            profile = load_user_profile(self._profile_path)
+            profile = load_user_profile(self._settings_path)
             return bool(profile.close_to_tray)
         except Exception:
             LOGGER.exception("Could not read profile for close-to-tray state")
@@ -161,24 +163,24 @@ class DesktopController:
 def run_desktop_app(
     *,
     config_path: str | Path,
-    env_path: str | Path,
-    profile_path: str | Path,
-    migration_state_path: str | Path,
     launcher_path: str | Path | None = None,
 ) -> None:
-    profile = load_user_profile(profile_path)
+    config = load_config(config_path)
+    profile = load_user_profile(config.settings_path)
     if not profile.created_at:
-        save_user_profile(profile_path, profile)
-    ensure_monitor_config_state(state_path=migration_state_path, monitor_config_path=config_path)
+        save_user_profile(config.settings_path, profile)
 
     orchestrator = MonitorOrchestrator(
-        config_path=config_path,
-        env_path=env_path,
-        profile_path=profile_path,
-        migration_state_path=migration_state_path,
+        config_path=config.config_path,
+        settings_path=config.settings_path,
+        migration_state_path=config.migration_state_path,
         autostart_launcher=Path(launcher_path).resolve() if launcher_path else None,
     )
-    controller = DesktopController(orchestrator, profile_path=Path(profile_path))
+    controller = DesktopController(
+        orchestrator,
+        app_name=config.system.app.name,
+        settings_path=config.settings_path,
+    )
     try:
         controller.run()
     finally:

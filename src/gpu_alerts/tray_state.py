@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 @dataclass(slots=True)
 class TrayState:
-    monitoring_paused: bool = False
+    monitoring_active: bool = True
     window_visible: bool = True
     exiting: bool = False
 
@@ -17,9 +17,13 @@ class TrayState:
         self.window_visible = True
         return "opened"
 
-    def toggle_pause_resume(self) -> str:
-        self.monitoring_paused = not self.monitoring_paused
-        return "paused" if self.monitoring_paused else "resumed"
+    def stop_monitoring(self) -> str:
+        self.monitoring_active = False
+        return "stopped"
+
+    def start_monitoring(self) -> str:
+        self.monitoring_active = True
+        return "started"
 
     def mark_exit(self) -> str:
         self.exiting = True

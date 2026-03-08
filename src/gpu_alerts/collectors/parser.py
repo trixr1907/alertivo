@@ -58,7 +58,9 @@ class ParsedHtmlCollectorMixin:
             price=parse_price(price_text, parser.price_regex),
             in_stock=parse_stock(stock_text, parser.stock_in_texts, parser.stock_out_texts),
             product_hint=self._config.product_hint,
+            include_title_terms=list(self._config.include_title_terms),
             exclude_title_terms=list(self._config.exclude_title_terms),
+            price_ceiling=self._config.price_ceiling,
             new_listing_price_below=self._config.new_listing_price_below,
             raw_payload={"price_text": price_text, "stock_text": stock_text},
         )
@@ -89,7 +91,9 @@ class ParsedHtmlCollectorMixin:
                     price=parse_price(price_text, parser.price_regex),
                     in_stock=parse_stock(stock_text, parser.stock_in_texts, parser.stock_out_texts),
                     product_hint=self._config.product_hint,
+                    include_title_terms=list(self._config.include_title_terms),
                     exclude_title_terms=list(self._config.exclude_title_terms),
+                    price_ceiling=self._config.price_ceiling,
                     new_listing_price_below=self._config.new_listing_price_below,
                     raw_payload={"price_text": price_text, "stock_text": stock_text},
                 )

@@ -1,20 +1,64 @@
-$targets = @(
-    "https://www.amazon.de/s?k=rtx+5070+ti",
-    "https://www.amazon.de/s?k=gl-mt6000",
-    "https://www.caseking.de/search?search=rtx+5070+ti",
-    "https://www.mediamarkt.de/de/search.html?query=rtx%205070%20ti",
-    "https://www.saturn.de/de/search.html?query=rtx%205070%20ti",
-    "https://www.notebooksbilliger.de/search?q=rtx+5070+ti",
-    "https://www.cyberport.de/search.html?query=rtx+5070+ti",
-    "https://www.galaxus.de/de/search?q=rtx%205070%20ti",
-    "https://www.proshop.de/?s=rtx%205070%20ti",
-    "https://www.computeruniverse.net/de/search?query=rtx%205070%20ti",
-    "https://webshop.asus.com/de/"
+param(
+    [string]$ConfigPath = "system.json"
 )
 
-foreach ($target in $targets) {
-    Start-Process $target
+$ErrorActionPreference = "Stop"
+$ProjectRoot = Split-Path -Parent $PSScriptRoot
+Set-Location $ProjectRoot
+
+function Get-PythonCommand {
+    $venvPython = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
+    if (Test-Path $venvPython) {
+        return $venvPython
+    }
+    if (Get-Command py -ErrorAction SilentlyContinue) {
+        return "py"
+    }
+    if (Get-Command python -ErrorAction SilentlyContinue) {
+        return "python"
+    }
+    throw "Kein Python-Launcher gefunden."
+}
+
+$ResolvedConfigPath = $ConfigPath
+if (-not [System.IO.Path]::IsPathRooted($ResolvedConfigPath)) {
+    $ResolvedConfigPath = Join-Path $ProjectRoot $ResolvedConfigPath
+}
+
+$PythonCommand = Get-PythonCommand
+$env:PYTHONPATH = (Join-Path $ProjectRoot "src")
+
+$PythonArgs = @(
+    "-c",
+    @'
+import json
+import sys
+from pathlib import Path
+
+from gpu_alerts.config import build_distill_targets, load_config
+
+config = load_config(Path(sys.argv[1]))
+urls = [entry["url"] for entry in build_distill_targets(config) if entry.get("url")]
+print(json.dumps(urls))
+'@,
+    $ResolvedConfigPath
+)
+
+if ($PythonCommand -eq "py") {
+    $RawUrls = & py -3 @PythonArgs
+}
+else {
+    $RawUrls = & $PythonCommand @PythonArgs
+}
+
+$Targets = @()
+if ($RawUrls) {
+    $Targets = ($RawUrls | ConvertFrom-Json) | Select-Object -Unique
+}
+
+foreach ($Target in $Targets) {
+    Start-Process $Target
     Start-Sleep -Milliseconds 200
 }
 
-Write-Host "Opened $($targets.Count) Distill target tabs."
+Write-Host "Opened $($Targets.Count) Distill target tabs."

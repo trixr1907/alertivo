@@ -1,200 +1,112 @@
+# Legacy-Migrationsdatei. Die aktive App verwendet heute:
+# - system.json
+# - %APPDATA%\Alertivo\settings.json
+# - %APPDATA%\Alertivo\trackers\*.json
+#
+# Diese Datei ist absichtlich generisch gehalten und dient nur noch als
+# Beispiel fuer Altinstallationen oder Migrations-Tests.
+
 database_path: data/alerts.sqlite
 log_level: INFO
-user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) GPUPriceAlerts/0.1
+user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Alertivo/0.1
 enable_restock_alerts: true
 new_listing_reference_min_age_seconds: 60
-rtx_5070_ti_exclude_complete_pc_terms:
-- gaming pc
-- komplett pc
-- komplettsystem
-- fertig pc
-- desktop pc
-- workstation
-- tower
-- all in one
-rtx_5070_ti_exclude_notebook_terms:
-- notebook
-- laptop
-rtx_5070_ti_exclude_bundle_terms:
-- bundle
-- set
-- netzteil
-- mainboard
-- motherboard
-- gehause
-- case
-- wasserkuehlung
-- watercooling
-rtx_5070_ti_exclude_defect_terms:
-- defekt
-- bastler
-- reparatur
-- beschaedigt
-- beschädigt
-- ersatzteil
+
 telegram:
   bot_token: ${TELEGRAM_BOT_TOKEN}
   chat_id: ${TELEGRAM_CHAT_ID}
+
 discord:
   webhook_url: ${DISCORD_WEBHOOK_URL}
+
 windows:
   enabled: true
   app_id: Alertivo
+
 sound:
   enabled: true
   sound_file: ${ALERT_SOUND_FILE}
+
 webhook:
-  enabled: false
+  enabled: true
   host: 127.0.0.1
   port: 8787
   path: /webhook/distill
   token: ${WEBHOOK_TOKEN}
+
 sources:
-- name: geizhals_flint2
-  type: http
-  enabled: true
-  url: https://geizhals.de/gl-inet-flint-2-gl-mt6000-a3168078.html
-  interval_seconds: 90
-  timeout_seconds: 20
-  shop: geizhals
-  source: geizhals
-  scope: aggregator
-  product_hint: glinet-flint-2
-  parser:
-    mode: single
-    title_selector: h1.variant__header__headline
-    price_selector: '#pricerange-min .gh_price, .offer__price .gh_price'
-    stock_selector: '.offer__delivery-time, #pricerange-no-offers'
-    stock_in_texts:
-    - Auf Lager
-    - lagernd
-    - verfügbar
-    stock_out_texts:
-    - Derzeit keine Angebote
-    - ausverkauft
-    - nicht verfügbar
-- name: geizhals_rtx5070ti_all_models
-  type: http
-  enabled: true
-  url: https://geizhals.de/?cat=gra16_512&xf=9816_03+05+18+-+RTX+5070+Ti
-  interval_seconds: 90
-  timeout_seconds: 20
-  shop: geizhals
-  source: geizhals
-  scope: aggregator
-  product_hint: rtx-5070-ti
-  parser:
-    mode: list
-    item_selector: article
-    title_selector: h3 a, h3
-    price_selector: __self__
-    price_regex: ab\s*€\s*([0-9\.\,]+)
-    link_selector: h3 a
-    stock_selector: __self__
-    stock_in_texts:
-    - lagernd beim Händler
-    - lagernd
-    - verfügbar
-    stock_out_texts:
-    - derzeit keine angebote
-    - ausverkauft
-    - nicht verfügbar
-- name: billiger_rtx5070ti_search
-  type: http
-  enabled: true
-  url: https://www.billiger.de/search?searchstring=rtx+5070+ti
-  interval_seconds: 90
-  timeout_seconds: 20
-  shop: billiger
-  source: billiger
-  scope: aggregator
-  product_hint: rtx-5070-ti
-  parser:
-    mode: list
-    item_selector: '[data-test-item-view-tile]'
-    title_selector: a[title]
-    price_selector: '[data-bde-price]'
-    link_selector: a[title]
-- name: alternate_rtx5070ti_search
-  type: http
-  enabled: true
-  url: https://www.alternate.de/Grafikkarten/NVIDIA-Grafikkarten/RTX-5070-Ti
-  interval_seconds: 25
-  timeout_seconds: 20
-  shop: alternate
-  source: shop
-  scope: shop_search
-  product_hint: rtx-5070-ti
-  parser:
-    mode: list
-    item_selector: a.card.productBox
-    title_selector: .product-name
-    price_selector: .price
-    link_selector: ''
-    stock_selector: .delivery-info
-    stock_in_texts:
-    - Auf Lager
-    - lieferbar
-    - sofort
-    stock_out_texts:
-    - nicht lieferbar
-    - ausverkauft
-    - derzeit nicht
-- name: mindfactory_rtx5070ti_search
-  type: command
-  enabled: true
-  url: https://www.mindfactory.de/search_result.php?search_query=rtx+5070+ti
-  command:
-  - curl
-  - -L
-  - --silent
-  - https://www.mindfactory.de/search_result.php?search_query=rtx+5070+ti
-  encoding: iso-8859-15
-  interval_seconds: 25
-  timeout_seconds: 20
-  shop: mindfactory
-  source: shop
-  scope: shop_search
-  product_hint: rtx-5070-ti
-  parser:
-    mode: list
-    item_selector: div.p
-    title_selector: .pname
-    price_selector: .pprice
-    link_selector: a.phover-complete-link, a.p-complete-link
-    stock_selector: .pshipping span
-    stock_in_texts:
-    - Lagernd
-    - lagernd
-    - Sofort
-    stock_out_texts:
-    - nicht lagernd
-    - nicht verfügbar
-    - ausverkauft
-- name: kleinanzeigen_mt6000_under_150
-  type: command
-  enabled: true
-  url: https://www.kleinanzeigen.de/s-multimedia-elektronik/mt6000/k0c161
-  command:
-  - curl
-  - -L
-  - --silent
-  - https://www.kleinanzeigen.de/s-multimedia-elektronik/mt6000/k0c161
-  interval_seconds: 45
-  timeout_seconds: 20
-  shop: kleinanzeigen
-  source: classifieds
-  scope: shop_search
-  product_hint: glinet-flint-2
-  new_listing_price_below: 150
-  parser:
-    mode: list
-    item_selector: article.aditem
-    title_selector: h2 a
-    price_selector: .aditem-main--middle--price-shipping--price
-    link_selector: h2 a
-    stock_selector: __self__
-    stock_in_texts:
-    - Direkt kaufen
-    - VB
-    - €
+  - name: geizhals_console_pro_search
+    type: http
+    enabled: true
+    url: https://geizhals.de/?fs=console+pro
+    interval_seconds: 90
+    timeout_seconds: 20
+    shop: geizhals
+    source: geizhals
+    scope: aggregator
+    product_hint: console-pro
+    exclude_title_terms:
+      - bundle
+      - gebraucht
+    parser:
+      mode: list
+      item_selector: article
+      title_selector: h3 a, h3
+      price_selector: __self__
+      price_regex: ab\s*€\s*([0-9\.\,]+)
+      link_selector: h3 a
+      stock_selector: __self__
+      stock_in_texts: ["lagernd beim handler", "lagernd", "verfugbar"]
+      stock_out_texts: ["derzeit keine angebote", "ausverkauft", "nicht verfugbar"]
+
+  - name: alternate_console_pro_search
+    type: http
+    enabled: true
+    url: https://www.alternate.de/listing.xhtml?q=console+pro
+    interval_seconds: 25
+    timeout_seconds: 20
+    shop: alternate
+    source: shop
+    scope: shop_search
+    product_hint: console-pro
+    exclude_title_terms:
+      - bundle
+      - gebraucht
+    parser:
+      mode: list
+      item_selector: a.card.productBox
+      title_selector: .product-name
+      price_selector: .price
+      link_selector: ""
+      stock_selector: .delivery-info
+      stock_in_texts: ["Auf Lager", "lieferbar", "sofort"]
+      stock_out_texts: ["nicht lieferbar", "ausverkauft", "derzeit nicht"]
+
+  - name: mindfactory_router_ax_search
+    type: command
+    enabled: true
+    url: https://www.mindfactory.de/search_result.php?search_query=router+ax
+    command:
+      - curl
+      - -L
+      - --silent
+      - https://www.mindfactory.de/search_result.php?search_query=router+ax
+    encoding: iso-8859-15
+    interval_seconds: 25
+    timeout_seconds: 20
+    shop: mindfactory
+    source: shop
+    scope: shop_search
+    product_hint: router-ax
+    exclude_title_terms:
+      - bundle
+      - gebraucht
+    parser:
+      mode: list
+      item_selector: div.p
+      title_selector: .pname
+      price_selector: .pprice
+      link_selector: a.phover-complete-link, a.p-complete-link
+      stock_selector: .pshipping span
+      stock_in_texts: ["Lagernd", "lagernd", "Sofort"]
+      stock_out_texts: ["nicht lagernd", "nicht verfugbar", "ausverkauft"]

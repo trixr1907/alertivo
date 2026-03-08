@@ -30,7 +30,9 @@ class OfferObservation:
     observed_at: datetime = field(default_factory=utc_now)
     product_hint: str | None = None
     raw_payload: dict[str, Any] = field(default_factory=dict)
+    include_title_terms: list[str] = field(default_factory=list)
     exclude_title_terms: list[str] = field(default_factory=list)
+    price_ceiling: Decimal | None = None
     new_listing_price_below: Decimal | None = None
     product_family: str | None = None
     canonical_model: str | None = None

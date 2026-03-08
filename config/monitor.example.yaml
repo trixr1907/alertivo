@@ -1,3 +1,9 @@
+# Legacy-Beispiel fuer den einmaligen Import in das neue JSON-Modell.
+# Die produktive Konfiguration liegt heute in:
+# - system.json
+# - %APPDATA%\Alertivo\settings.json
+# - %APPDATA%\Alertivo\trackers\*.json
+
 database_path: data/alerts.sqlite
 log_level: INFO
 user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Alertivo/0.1
@@ -17,7 +23,6 @@ windows:
 
 sound:
   enabled: true
-  # Beispiel: C:\Windows\Media\Alarm01.wav
   sound_file: ${ALERT_SOUND_FILE}
 
 webhook:
@@ -28,65 +33,46 @@ webhook:
   token: ${WEBHOOK_TOKEN}
 
 sources:
-  - name: geizhals_flint2
+  - name: geizhals_console_pro_reference
     type: http
     enabled: true
-    url: https://geizhals.de/gl-inet-flint-2-gl-mt6000-a3168078.html
+    url: https://geizhals.de/?fs=console+pro
     interval_seconds: 90
     timeout_seconds: 20
     shop: geizhals
     source: geizhals
     scope: aggregator
-    product_hint: glinet-flint-2
+    product_hint: console-pro
+    exclude_title_terms:
+      - bundle
+      - gebraucht
     parser:
-      mode: single
-      title_selector: h1.variant__header__headline
-      price_selector: "#pricerange-min .gh_price, .offer__price .gh_price"
-      stock_selector: ".offer__delivery-time, #pricerange-no-offers"
-      stock_in_texts: ["Auf Lager", "lagernd", "verfügbar"]
-      stock_out_texts: ["Derzeit keine Angebote", "ausverkauft", "nicht verfügbar"]
+      mode: list
+      item_selector: article
+      title_selector: h3 a, h3
+      price_selector: __self__
+      price_regex: ab\s*€\s*([0-9\.\,]+)
+      link_selector: h3 a
 
-  - name: geizhals_rtx5070ti_gigabyte_example
+  - name: alternate_router_ax_search
     type: http
     enabled: true
-    url: https://geizhals.de/gigabyte-geforce-rtx-5070-ti-eagle-oc-sff-16g-gv-n507teagle-oc-16gd-a3381842.html
-    interval_seconds: 90
+    url: https://www.alternate.de/listing.xhtml?q=router+ax
+    interval_seconds: 30
     timeout_seconds: 20
-    shop: geizhals
-    source: geizhals
-    scope: aggregator
-    product_hint: rtx-5070-ti
+    shop: alternate
+    source: shop
+    scope: shop_search
+    product_hint: router-ax
+    exclude_title_terms:
+      - bundle
+      - gebraucht
     parser:
-      mode: single
-      title_selector: h1.variant__header__headline
-      price_selector: "#pricerange-min .gh_price, .offer__price .gh_price"
-      stock_selector: ".offer__delivery-time, #pricerange-no-offers"
-      stock_in_texts: ["Auf Lager", "lagernd", "verfügbar"]
-      stock_out_texts: ["Derzeit keine Angebote", "ausverkauft", "nicht verfügbar"]
-
-  # Direkte Shopseiten sind für die höchste Geschwindigkeit gedacht.
-  # Ergänze sie bevorzugt über Distill -> Webhook, damit du lokal im Browser
-  # mit 10-30 Sekunden Intervall arbeiten kannst.
-  #
-  # Beispiel für eine direkte HTML-Quelle, wenn die Shopseite serverseitig
-  # gerendert ist und stabile CSS-Selektoren hat:
-  #
-  # - name: direct_shop_example
-  #   type: http
-  #   enabled: false
-  #   url: https://www.example-shop.de/search?sSearch=RTX+5070+Ti
-  #   interval_seconds: 20
-  #   timeout_seconds: 15
-  #   shop: example-shop
-  #   source: shop
-  #   scope: shop_search
-  #   product_hint: rtx-5070-ti
-  #   parser:
-  #     mode: list
-  #     item_selector: ".product-card"
-  #     title_selector: ".product-card__title"
-  #     price_selector: ".price"
-  #     link_selector: "a.product-card__link"
-  #     stock_selector: ".availability"
-  #     stock_in_texts: ["sofort lieferbar", "lagernd", "in stock"]
-  #     stock_out_texts: ["nicht verfügbar", "ausverkauft", "out of stock"]
+      mode: list
+      item_selector: a.card.productBox
+      title_selector: .product-name
+      price_selector: .price
+      link_selector: ""
+      stock_selector: .delivery-info
+      stock_in_texts: ["Auf Lager", "lieferbar", "sofort"]
+      stock_out_texts: ["nicht lieferbar", "ausverkauft", "derzeit nicht"]

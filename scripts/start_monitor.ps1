@@ -1,6 +1,5 @@
 param(
-    [string]$ConfigPath = "config/monitor.yaml",
-    [string]$EnvPath = "config/alerts.env.ps1"
+    [string]$ConfigPath = "system.json"
 )
 
 $ErrorActionPreference = "Stop"
@@ -24,15 +23,6 @@ function Reset-PythonEnvironment {
 
 Reset-PythonEnvironment
 
-$ResolvedEnvPath = $EnvPath
-if (-not [System.IO.Path]::IsPathRooted($ResolvedEnvPath)) {
-    $ResolvedEnvPath = Join-Path $ProjectRoot $ResolvedEnvPath
-}
-
-if (Test-Path $ResolvedEnvPath) {
-    . $ResolvedEnvPath
-}
-
 $ResolvedConfigPath = $ConfigPath
 if (-not [System.IO.Path]::IsPathRooted($ResolvedConfigPath)) {
     $ResolvedConfigPath = Join-Path $ProjectRoot $ResolvedConfigPath
@@ -52,7 +42,7 @@ $Python = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
 $VenvRoot = Join-Path $ProjectRoot ".venv"
 $LinuxPython = Join-Path $ProjectRoot ".venv\bin\python"
 $Launcher = Get-PythonLauncher
-$TempWorkdir = Join-Path $env:TEMP "gpu-price-alerts-bootstrap"
+$TempWorkdir = Join-Path $env:TEMP "alertivo-bootstrap"
 New-Item -ItemType Directory -Force -Path $TempWorkdir | Out-Null
 
 function New-WindowsVenv {

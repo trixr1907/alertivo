@@ -1,73 +1,54 @@
 # Windows Live Setup
 
-## 1. Dateien vorbereiten
-- Projekt nach `C:\GPU` oder einen anderen festen Pfad legen.
-- Optional zuerst alles automatisch vorbereiten:
+## 1. Vorbereitung
+- Python 3.12 installieren.
+- Projekt in einen beliebigen Ordner legen. Feste Pfade wie `C:\GPU` sind nicht mehr erforderlich.
+- Im Projektordner `.\scripts\setup_ready.ps1` ausfuehren.
 
+## 2. Start
 ```powershell
-.\scripts\setup_ready.ps1 -ConfigPath config/monitor.yaml -EnvPath config/alerts.env.ps1
+.\scripts\start_alertivo.ps1
 ```
 
-- Danach nur noch Telegram-/Discord-Werte in `config\alerts.env.ps1` eintragen.
+Danach laeuft das lokale Control Center unter:
+- `http://127.0.0.1:8787/control-center`
 
-## 2. Direkte Poller starten
-Diese sind in [monitor.yaml](/mnt/c/Users/Ivo/Desktop/GPU/config/monitor.yaml) schon aktiv:
-- `Geizhals` für Flint 2
-- `Geizhals` für RTX-5070-Ti-Referenz
-- `Alternate` für neue GPU-Listings / Preisdrops
-- `Mindfactory` für neue GPU-Listings / Preisdrops
+## 3. Erstes Onboarding
+Im Control Center:
+1. Anzeigename setzen.
+2. Telegram-/Discord-Daten eintragen.
+3. Optional Distill-Token aktivieren.
+4. Ersten Tracker anlegen.
+5. Benachrichtigungen mit der Testfunktion pruefen.
 
-## 3. Distill für die schnellen Blocker-Shops
-In Distill lokal je einen Monitor anlegen für:
-- `Amazon` RTX 5070 Ti Suchseite
-- `Amazon` GL-MT6000 / Flint 2 Suchseite oder Produktseite
-- `Caseking` RTX 5070 Ti Suche
-- `Notebooksbilliger` RTX 5070 Ti Suche
-- `Cyberport` RTX 5070 Ti Suche
-- `Galaxus` RTX 5070 Ti Suche
-- `MediaMarkt` RTX 5070 Ti Suche
-- `Saturn` RTX 5070 Ti Suche
-- `Proshop` RTX 5070 Ti Suche
-- `Computeruniverse` RTX 5070 Ti Suche
-- `ASUS Store` RTX 5070 Ti Suche/Kategorie
+Die Daten werden automatisch unter `%APPDATA%\Alertivo` gespeichert:
+- `settings.json`
+- `trackers\*.json`
+- `data\alerts.sqlite`
+- `logs\`
 
-Webhook in Distill:
-- URL: `http://127.0.0.1:8787/webhook/distill`
-- Header: `X-Webhook-Token: <WEBHOOK_TOKEN>`
-- Intervall:
-  - `15s` für Amazon, Caseking, MediaMarkt, Saturn
-  - `20s` für NBB, Cyberport, Galaxus, Proshop, Computeruniverse, ASUS Store
+## 4. Distill anbinden
+Fuer JS-lastige Shops:
+1. Im Control Center den gewuenschten Tracker oeffnen.
+2. Das generierte Distill-Snippet kopieren.
+3. In Distill einen lokalen Monitor anlegen.
+4. URL, Header und Body aus dem Snippet uebernehmen.
 
-## 4. Start unter Windows
-PowerShell im Projektordner:
-
-```powershell
-.\scripts\start_monitor.ps1 -ConfigPath config/monitor.yaml
-```
+Der Webhook ist lokal unter `http://127.0.0.1:8787/webhook/distill` erreichbar.
 
 ## 5. Alarmkette testen
-Lokalen Webhook testen:
-
 ```powershell
-py -3.12 .\scripts\send_test_webhook.py --token $env:WEBHOOK_TOKEN
+.\scripts\send_test_webhook.ps1
 ```
 
-Wenn alles richtig ist, bekommst du:
-- Konsolen-Output
-- Windows-Toast
-- Sound
-- Telegram
-- Discord
+Optional gezielt fuer einen Tracker:
+```powershell
+.\scripts\send_test_webhook.ps1 -TrackerId ps5-pro
+```
 
 ## 6. Dauerbetrieb
-Task Scheduler registrieren:
+- Die App kann ueber das Tray oder das Control Center gesteuert werden.
+- Autostart ist als Einstellung vorgesehen und darf nicht mehr ueber manuell gepflegte `.env`- oder YAML-Dateien erzwungen werden.
 
-```powershell
-.\scripts\register_tasks.ps1 -TaskName GPUPriceAlerts -ConfigPath config/monitor.yaml
-```
-
-## 7. Empfohlene Live-Reihenfolge
-1. `Alternate` und `Mindfactory` direkt laufen lassen.
-2. Distill für `Amazon`, `Caseking`, `MediaMarkt`, `Saturn`.
-3. Danach `NBB`, `Cyberport`, `Galaxus`, `Proshop`, `Computeruniverse`, `ASUS Store`.
-4. Community-Layer parallel abonnieren: `FE PartAlert`, `Notify-FE`, `mydealz`.
+## 7. Legacy-Import
+Wenn im Installationsverzeichnis noch alte Dateien unter `config\` liegen, importiert Alertivo sie beim ersten Start automatisch in die neue JSON-Struktur. Danach ist `%APPDATA%\Alertivo` die aktive Quelle.

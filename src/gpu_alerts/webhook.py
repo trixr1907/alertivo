@@ -39,6 +39,7 @@ class WebhookServer:
         self._path = path
         self._token = token
         self._webhook_enabled = webhook_enabled
+        self._runtime_controller = runtime_controller
         self._app = web.Application()
         if self._webhook_enabled:
             self._app.router.add_post(self._path, self._handle)
@@ -60,6 +61,9 @@ class WebhookServer:
         return self._app
 
     async def _handle(self, request: web.Request) -> web.Response:
+        if self._runtime_controller and hasattr(self._runtime_controller, "is_monitoring_active"):
+            if not self._runtime_controller.is_monitoring_active():
+                return web.json_response({"ok": False, "error": "monitoring_stopped"}, status=409)
         if self._token:
             auth = request.headers.get("X-Webhook-Token", "")
             if auth != self._token:
@@ -107,7 +111,13 @@ class WebhookServer:
             price=parsed_price,
             in_stock=parsed_stock,
             product_hint=payload.get("product_hint"),
+            include_title_terms=list(payload.get("include_title_terms", [])),
             exclude_title_terms=list(payload.get("exclude_title_terms", [])),
+            price_ceiling=(
+                Decimal(str(payload["price_ceiling"]))
+                if payload.get("price_ceiling") is not None
+                else None
+            ),
             new_listing_price_below=(
                 Decimal(str(payload["new_listing_price_below"]))
                 if payload.get("new_listing_price_below") is not None

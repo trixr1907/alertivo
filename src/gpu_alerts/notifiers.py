@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import sys
+from decimal import Decimal
 from typing import Protocol
 
 import aiohttp
@@ -182,6 +183,66 @@ def build_notifier_manager(
     if sound.enabled:
         notifiers.append(SoundNotifier(sound))
     return NotifierManager(notifiers)
+
+
+def build_test_event(*, display_name: str = "Alertivo User", channel: str = "manual_test") -> AlertEvent:
+    return AlertEvent(
+        event_type="manual_test",
+        shop="alertivo",
+        source=channel,
+        product_family="alertivo-test",
+        canonical_model="alertivo-test",
+        title=f"Alertivo Testnachricht fuer {display_name or 'Alertivo User'}",
+        url="http://127.0.0.1:8787/control-center",
+        old_price=Decimal("249"),
+        new_price=Decimal("199"),
+        currency="EUR",
+        in_stock=True,
+        dedupe_key=f"alertivo-test-{channel}",
+    )
+
+
+async def send_test_notifications(
+    session: aiohttp.ClientSession,
+    *,
+    display_name: str = "Alertivo User",
+    telegram: TelegramConfig | None = None,
+    discord: DiscordConfig | None = None,
+    windows: WindowsConfig | None = None,
+    sound: SoundConfig | None = None,
+    channels: list[str] | None = None,
+) -> dict[str, dict[str, Any]]:
+    requested_channels = [item.strip().lower() for item in (channels or []) if item.strip()]
+    if not requested_channels:
+        requested_channels = ["telegram", "discord", "windows", "sound"]
+
+    results: dict[str, dict[str, Any]] = {}
+    for channel in requested_channels:
+        event = build_test_event(display_name=display_name, channel=channel)
+        try:
+            if channel == "telegram":
+                if telegram is None:
+                    raise ValueError("telegram_not_configured")
+                await TelegramNotifier(session, telegram).send(event)
+            elif channel == "discord":
+                if discord is None:
+                    raise ValueError("discord_not_configured")
+                await DiscordNotifier(session, discord).send(event)
+            elif channel == "windows":
+                if windows is None or not windows.enabled:
+                    raise ValueError("windows_notifications_disabled")
+                await WindowsToastNotifier(windows).send(event)
+            elif channel == "sound":
+                if sound is None or not sound.enabled:
+                    raise ValueError("sound_notifications_disabled")
+                await SoundNotifier(sound).send(event)
+            else:
+                raise ValueError("unsupported_channel")
+        except Exception as exc:
+            results[channel] = {"ok": False, "error": str(exc)}
+            continue
+        results[channel] = {"ok": True}
+    return results
 
 
 def _xml_escape(value: str) -> str:

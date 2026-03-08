@@ -46,10 +46,6 @@ async def run(config: AppConfig, *, check_once: bool = False) -> None:
             notifiers,
             enable_restock_alerts=config.enable_restock_alerts,
             new_listing_reference_min_age_seconds=config.new_listing_reference_min_age_seconds,
-            rtx_5070_ti_exclude_complete_pc_terms=config.rtx_5070_ti_exclude_complete_pc_terms,
-            rtx_5070_ti_exclude_notebook_terms=config.rtx_5070_ti_exclude_notebook_terms,
-            rtx_5070_ti_exclude_bundle_terms=config.rtx_5070_ti_exclude_bundle_terms,
-            rtx_5070_ti_exclude_defect_terms=config.rtx_5070_ti_exclude_defect_terms,
         )
 
         webhook_runner = None
@@ -88,6 +84,8 @@ def build_collectors(session: aiohttp.ClientSession, config: AppConfig) -> list[
     collectors: list[tuple[SourceConfig, object]] = []
     for source in config.sources:
         if not source.enabled:
+            continue
+        if source.type == "distill":
             continue
         if source.type == "http":
             collectors.append((source, HttpCollector(session, source, config.user_agent)))
@@ -134,7 +132,7 @@ async def poll_once(source: SourceConfig, collector: object, engine: AlertEngine
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Alertivo local monitoring runtime.")
-    parser.add_argument("--config", default="config/monitor.yaml", help="Path to YAML config.")
+    parser.add_argument("--config", default="system.json", help="Path to system.json.")
     parser.add_argument("--check-once", action="store_true", help="Run each source once and exit.")
     args = parser.parse_args()
 

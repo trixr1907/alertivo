@@ -1,4 +1,4 @@
-"""GPU price alerts package."""
+"""Alertivo monitoring package."""
 
 __all__ = ["__version__"]
 

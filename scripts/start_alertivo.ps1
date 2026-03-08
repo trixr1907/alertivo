@@ -1,8 +1,5 @@
 param(
-    [string]$ConfigPath = "config/monitor.yaml",
-    [string]$EnvPath = "config/alerts.env.ps1",
-    [string]$ProfilePath = "config/user-profile.json",
-    [string]$MigrationStatePath = "config/monitor-config.json"
+    [string]$ConfigPath = "system.json"
 )
 
 $ErrorActionPreference = "Stop"
@@ -11,20 +8,14 @@ Set-Location $ProjectRoot
 
 $Python = Join-Path $ProjectRoot ".venv\Scripts\python.exe"
 if (-not (Test-Path $Python)) {
-    throw "Python-Umgebung fehlt: $Python. Bitte zuerst .\\scripts\\setup_ready.ps1 ausfuehren."
+    throw "Python-Umgebung fehlt: $Python. Bitte zuerst .\scripts\setup_ready.ps1 ausfuehren."
 }
 
 $ResolvedConfigPath = if ([System.IO.Path]::IsPathRooted($ConfigPath)) { $ConfigPath } else { Join-Path $ProjectRoot $ConfigPath }
-$ResolvedEnvPath = if ([System.IO.Path]::IsPathRooted($EnvPath)) { $EnvPath } else { Join-Path $ProjectRoot $EnvPath }
-$ResolvedProfilePath = if ([System.IO.Path]::IsPathRooted($ProfilePath)) { $ProfilePath } else { Join-Path $ProjectRoot $ProfilePath }
-$ResolvedMigrationPath = if ([System.IO.Path]::IsPathRooted($MigrationStatePath)) { $MigrationStatePath } else { Join-Path $ProjectRoot $MigrationStatePath }
 
 Start-Process -WindowStyle Hidden -FilePath $Python -ArgumentList @(
     (Join-Path $ProjectRoot "scripts\alertivo_exe_entry.py"),
-    "--config", $ResolvedConfigPath,
-    "--env", $ResolvedEnvPath,
-    "--profile", $ResolvedProfilePath,
-    "--migration-state", $ResolvedMigrationPath
+    "--config", $ResolvedConfigPath
 )
 
 Write-Host "Alertivo startet im Hintergrund."

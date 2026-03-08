@@ -1,6 +1,9 @@
+# Legacy-Referenz fuer fruehere HTTP-/Command-Collector-Setups.
+# Neue Installationen sollten Tracker im Control Center anlegen.
+
 database_path: data/alerts.sqlite
 log_level: INFO
-user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) GPUPriceAlerts/0.1
+user_agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Alertivo/0.1
 enable_restock_alerts: true
 new_listing_reference_min_age_seconds: 60
 
@@ -13,7 +16,7 @@ discord:
 
 windows:
   enabled: true
-  app_id: GPUPriceAlerts
+  app_id: Alertivo
 
 sound:
   enabled: true
@@ -27,84 +30,66 @@ webhook:
   token: ${WEBHOOK_TOKEN}
 
 sources:
-  - name: geizhals_flint2
+  - name: geizhals_console_pro_search
     type: http
     enabled: true
-    url: https://geizhals.de/gl-inet-flint-2-gl-mt6000-a3168078.html
+    url: https://geizhals.de/?fs=console+pro
     interval_seconds: 90
     timeout_seconds: 20
     shop: geizhals
     source: geizhals
     scope: aggregator
-    product_hint: glinet-flint-2
+    product_hint: console-pro
     parser:
-      mode: single
-      title_selector: h1.variant__header__headline
-      price_selector: "#pricerange-min .gh_price, .offer__price .gh_price"
-      stock_selector: ".offer__delivery-time, #pricerange-no-offers"
-      stock_in_texts: ["Auf Lager", "lagernd", "verfügbar"]
-      stock_out_texts: ["Derzeit keine Angebote", "ausverkauft", "nicht verfügbar"]
+      mode: list
+      item_selector: article
+      title_selector: h3 a, h3
+      price_selector: __self__
+      price_regex: ab\s*€\s*([0-9\.\,]+)
+      link_selector: h3 a
 
-  - name: geizhals_rtx5070ti_gigabyte
+  - name: alternate_console_pro_search
     type: http
     enabled: true
-    url: https://geizhals.de/gigabyte-geforce-rtx-5070-ti-eagle-oc-sff-16g-gv-n507teagle-oc-16gd-a3381842.html
-    interval_seconds: 90
-    timeout_seconds: 20
-    shop: geizhals
-    source: geizhals
-    scope: aggregator
-    product_hint: rtx-5070-ti
-    parser:
-      mode: single
-      title_selector: h1.variant__header__headline
-      price_selector: "#pricerange-min .gh_price, .offer__price .gh_price"
-      stock_selector: ".offer__delivery-time, #pricerange-no-offers"
-      stock_in_texts: ["Auf Lager", "lagernd", "verfügbar"]
-      stock_out_texts: ["Derzeit keine Angebote", "ausverkauft", "nicht verfügbar"]
-
-  - name: alternate_rtx5070ti_search
-    type: http
-    enabled: true
-    url: https://www.alternate.de/Grafikkarten/NVIDIA-Grafikkarten/RTX-5070-Ti
+    url: https://www.alternate.de/listing.xhtml?q=console+pro
     interval_seconds: 30
     timeout_seconds: 20
     shop: alternate
     source: shop
     scope: shop_search
-    product_hint: rtx-5070-ti
+    product_hint: console-pro
     parser:
       mode: list
-      item_selector: "a.card.productBox"
-      title_selector: ".product-name"
-      price_selector: ".price"
+      item_selector: a.card.productBox
+      title_selector: .product-name
+      price_selector: .price
       link_selector: ""
-      stock_selector: ".delivery-info"
+      stock_selector: .delivery-info
       stock_in_texts: ["Auf Lager", "lieferbar", "sofort"]
       stock_out_texts: ["nicht lieferbar", "ausverkauft", "derzeit nicht"]
 
-  - name: mindfactory_rtx5070ti_search
+  - name: mindfactory_router_ax_search
     type: command
     enabled: true
-    url: https://www.mindfactory.de/search_result.php?search_query=rtx+5070+ti
+    url: https://www.mindfactory.de/search_result.php?search_query=router+ax
     command:
       - curl
       - -L
       - --silent
-      - https://www.mindfactory.de/search_result.php?search_query=rtx+5070+ti
+      - https://www.mindfactory.de/search_result.php?search_query=router+ax
     encoding: iso-8859-15
     interval_seconds: 30
     timeout_seconds: 20
     shop: mindfactory
     source: shop
     scope: shop_search
-    product_hint: rtx-5070-ti
+    product_hint: router-ax
     parser:
       mode: list
-      item_selector: "div.p"
-      title_selector: ".pname"
-      price_selector: ".pprice"
+      item_selector: div.p
+      title_selector: .pname
+      price_selector: .pprice
       link_selector: "a.phover-complete-link, a.p-complete-link"
       stock_selector: ".pshipping span"
       stock_in_texts: ["Lagernd", "lagernd", "Sofort"]
-      stock_out_texts: ["nicht lagernd", "nicht verfügbar", "ausverkauft"]
+      stock_out_texts: ["nicht lagernd", "nicht verfuegbar", "ausverkauft"]

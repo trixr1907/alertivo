@@ -1,224 +1,67 @@
+# Historische Referenz fuer Distill-Profile aus der Vor-JSON-Zeit.
+# In der aktuellen App werden Distill-Snippets direkt im Control Center
+# pro Tracker und Shop generiert.
+
 profiles:
-  - name: amazon_rtx5070ti_search
+  - name: amazon_console_pro_search
     shop: amazon
-    product_hint: rtx-5070-ti
+    product_hint: console-pro
     strategy: distill_webhook
     interval_seconds: 15
     priority: tier_a
-    url: https://www.amazon.de/s?k=rtx+5070+ti
+    url: https://www.amazon.de/s?k=console+pro
     page_type: search
-    recommended_watch_target: "erste 10-20 Suchkarten oder Ergebnisliste"
+    recommended_watch_target: "erste 10-20 Produktkarten der Suchseite"
     fields:
       title: "Produktname pro Karte"
       price: "sichtbarer Endpreis"
-      in_stock: "\"Auf Lager\" / Lieferstatus oder Buy-Box-Indikator"
+      in_stock: "Lagerstatus oder Buy-Box-Indikator"
       url: "Link auf Produktdetailseite"
     notes:
-      - "Direkte HTTP-Requests liefern aktuell 503/Anti-Bot."
-      - "Deshalb nur lokal im Browser mit Distill oder ähnlicher Erweiterung."
+      - "Direkte HTTP-Requests liefern auf grossen Shops oft Anti-Bot- oder Challenge-Seiten."
+      - "Deshalb lokal im Browser mit Distill ueberwachen."
 
-  - name: mindfactory_rtx5070ti_search
-    shop: mindfactory
-    product_hint: rtx-5070-ti
-    strategy: http_or_distill
-    interval_seconds: 20
-    priority: tier_a
-    url: https://www.mindfactory.de/search_result.php?search_query=rtx+5070+ti
-    page_type: search
-    recommended_watch_target: "Produktkacheln mit Titel, Preis, Lagerstatus"
-    fields:
-      title: ".pname"
-      price: ".pprice"
-      in_stock: ".pshipping span"
-      url: "a.phover-complete-link"
-    notes:
-      - "Serverseitig parsebar, gut für direkten HTTP-Poller."
-      - "Distill lokal ist trotzdem schneller, wenn du 10-20s willst."
-
-  - name: alternate_rtx5070ti_search
-    shop: alternate
-    product_hint: rtx-5070-ti
-    strategy: http_or_distill
-    interval_seconds: 20
-    priority: tier_a
-    url: https://www.alternate.de/Grafikkarten/NVIDIA-Grafikkarten/RTX-5070-Ti
-    page_type: category
-    recommended_watch_target: "Produktkarten der Kategorie"
-    fields:
-      title: ".product-name"
-      price: ".price"
-      in_stock: ".delivery-info"
-      url: "a.card.productBox"
-    notes:
-      - "Aktuell sehr gut serverseitig parsebar."
-      - "Gute Primärquelle für neue AIB-Listings."
-
-  - name: caseking_rtx5070ti_search
-    shop: caseking
-    product_hint: rtx-5070-ti
-    strategy: distill_webhook
-    interval_seconds: 15
-    priority: tier_a
-    url: https://www.caseking.de/search?search=rtx+5070+ti
-    page_type: search
-    recommended_watch_target: "Suchtrefferliste"
-    fields:
-      title: "Produktname pro Karte"
-      price: "sichtbarer Preis"
-      in_stock: "Lager-/Ampeltext"
-      url: "Produktlink"
-    notes:
-      - "Direkte HTTP-Requests liefern aktuell Cloudflare-Challenge (403)."
-
-  - name: notebooksbilliger_rtx5070ti_search
-    shop: notebooksbilliger
-    product_hint: rtx-5070-ti
-    strategy: distill_webhook
-    interval_seconds: 20
-    priority: tier_a
-    url: https://www.notebooksbilliger.de/search?q=rtx+5070+ti
-    page_type: search
-    recommended_watch_target: "Suchtrefferliste"
-    fields:
-      title: "Produktname"
-      price: "Preis"
-      in_stock: "Lager-/Lieferstatus"
-      url: "Produktlink"
-    notes:
-      - "Direkte HTTP-Requests liefern aktuell 403."
-
-  - name: cyberport_rtx5070ti_search
-    shop: cyberport
-    product_hint: rtx-5070-ti
-    strategy: distill_webhook
-    interval_seconds: 20
-    priority: tier_a
-    url: https://www.cyberport.de/search.html?query=rtx+5070+ti
-    page_type: search
-    recommended_watch_target: "Suchtrefferliste oder konkrete PDPs"
-    fields:
-      title: "Produktname"
-      price: "Preis"
-      in_stock: "Verfügbarkeit"
-      url: "Produktlink"
-    notes:
-      - "Im lokalen Test kein stabil parsebarer HTML-Output."
-
-  - name: galaxus_rtx5070ti_search
-    shop: galaxus
-    product_hint: rtx-5070-ti
-    strategy: distill_webhook
-    interval_seconds: 20
-    priority: tier_a
-    url: https://www.galaxus.de/de/search?q=rtx%205070%20ti
-    page_type: search
-    recommended_watch_target: "gerenderte Suchtreffer"
-    fields:
-      title: "Produktname"
-      price: "Preis"
-      in_stock: "Lieferstatus"
-      url: "Produktlink"
-    notes:
-      - "Direkte Requests landen aktuell auf einer Captcha-Seite."
-
-  - name: proshop_rtx5070ti_search
-    shop: proshop
-    product_hint: rtx-5070-ti
-    strategy: distill_webhook
-    interval_seconds: 20
-    priority: tier_a
-    url: https://www.proshop.de/?s=rtx%205070%20ti
-    page_type: search
-    recommended_watch_target: "Suchtreffer"
-    fields:
-      title: "Produktname"
-      price: "Preis"
-      in_stock: "Verfügbarkeit"
-      url: "Produktlink"
-    notes:
-      - "Direkte HTTP-Requests liefern aktuell Cloudflare-Challenge (403)."
-
-  - name: computeruniverse_rtx5070ti_search
-    shop: computeruniverse
-    product_hint: rtx-5070-ti
-    strategy: distill_webhook
-    interval_seconds: 20
-    priority: tier_a
-    url: https://www.computeruniverse.net/de/search?query=rtx%205070%20ti
-    page_type: search
-    recommended_watch_target: "Suchtreffer"
-    fields:
-      title: "Produktname"
-      price: "Preis"
-      in_stock: "Verfügbarkeit"
-      url: "Produktlink"
-    notes:
-      - "Direkte HTTP-Requests liefern aktuell Cloudflare-Challenge (403)."
-
-  - name: mediamarkt_rtx5070ti_search
+  - name: mediamarkt_console_pro_search
     shop: mediamarkt
-    product_hint: rtx-5070-ti
+    product_hint: console-pro
     strategy: distill_webhook
     interval_seconds: 20
     priority: tier_a
-    url: https://www.mediamarkt.de/de/search.html?query=rtx%205070%20ti
+    url: https://www.mediamarkt.de/de/search.html?query=console%20pro
     page_type: search
-    recommended_watch_target: "Suchtrefferliste"
+    recommended_watch_target: "gerenderte Suchtrefferliste"
     fields:
       title: "Produktname"
       price: "Preis"
       in_stock: "Lieferstatus"
       url: "Produktlink"
-    notes:
-      - "Direkte HTTP-Requests liefern aktuell Cloudflare-Challenge (403)."
 
-  - name: saturn_rtx5070ti_search
+  - name: saturn_router_ax_search
     shop: saturn
-    product_hint: rtx-5070-ti
+    product_hint: router-ax
     strategy: distill_webhook
     interval_seconds: 20
-    priority: tier_a
-    url: https://www.saturn.de/de/search.html?query=rtx%205070%20ti
+    priority: tier_b
+    url: https://www.saturn.de/de/search.html?query=router%20ax
     page_type: search
-    recommended_watch_target: "Suchtrefferliste"
+    recommended_watch_target: "Produktkarten mit Name, Preis und Lagerstatus"
     fields:
       title: "Produktname"
       price: "Preis"
-      in_stock: "Lieferstatus"
+      in_stock: "Verfuegbarkeit"
       url: "Produktlink"
-    notes:
-      - "Direkte HTTP-Requests liefern aktuell Cloudflare-Challenge (403)."
 
-  - name: amazon_flint2_product
-    shop: amazon
-    product_hint: glinet-flint-2
-    strategy: distill_webhook
-    interval_seconds: 20
-    priority: tier_a
-    url: https://www.amazon.de/s?k=gl-mt6000
-    page_type: search_or_product
-    recommended_watch_target: "Suchseite und falls vorhanden dedizierte PDP"
-    fields:
-      title: "GL.iNet Flint 2 / GL-MT6000"
-      price: "Preis"
-      in_stock: "Auf Lager / Lieferstatus"
-      url: "Produktlink"
-    notes:
-      - "Amazon nur lokal im Browser überwachen."
-
-  - name: asus_store_rtx5070ti
+  - name: asus_store_router_ax
     shop: asus-store
-    product_hint: rtx-5070-ti
+    product_hint: router-ax
     strategy: distill_webhook
     interval_seconds: 20
-    priority: tier_a
+    priority: tier_b
     url: https://webshop.asus.com/de/
     page_type: search_or_category
-    recommended_watch_target: "Suchergebnisse oder dedizierte GPU-Kategorie"
+    recommended_watch_target: "Suchergebnisse oder Router-Kategorie"
     fields:
       title: "Produktname"
       price: "Preis"
-      in_stock: "Verfügbarkeit"
+      in_stock: "Verfuegbarkeit"
       url: "Produktlink"
-    notes:
-      - "Store-Struktur variiert stark, daher bewusst Distill-only."

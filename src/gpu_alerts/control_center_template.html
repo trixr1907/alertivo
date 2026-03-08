@@ -6,19 +6,20 @@
   <title>Alertivo Control Center</title>
   <style>
     :root {
-      --bg-0: #050911;
-      --bg-1: #0a1220;
-      --panel: rgba(15, 24, 40, 0.94);
-      --line: #2c4766;
-      --text: #eef5ff;
-      --muted: #9cb4d6;
-      --accent: #56d0ff;
-      --ok: #2ed889;
-      --warn: #ffc14f;
-      --bad: #ff6f6f;
-      --radius: 14px;
-      --shadow: 0 20px 44px rgba(0, 0, 0, 0.42);
-      --font: "Bahnschrift", "Segoe UI", sans-serif;
+      --bg: #061019;
+      --panel: rgba(10, 18, 29, 0.92);
+      --panel-2: rgba(15, 26, 42, 0.96);
+      --line: #1d3853;
+      --text: #edf5ff;
+      --muted: #98b4d4;
+      --accent: #5fe0ff;
+      --accent-2: #95ffca;
+      --warn: #ffca62;
+      --bad: #ff7b7b;
+      --radius: 18px;
+      --radius-sm: 12px;
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+      --font: "Rajdhani", "Bahnschrift", "Segoe UI", sans-serif;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; }
@@ -26,880 +27,1319 @@
       font-family: var(--font);
       color: var(--text);
       background:
-        radial-gradient(circle at 8% 12%, rgba(86,208,255,0.2), transparent 26%),
-        radial-gradient(circle at 92% 8%, rgba(97,134,255,0.14), transparent 20%),
-        linear-gradient(180deg, var(--bg-0), var(--bg-1));
+        radial-gradient(circle at 12% 14%, rgba(95,224,255,0.18), transparent 28%),
+        radial-gradient(circle at 84% 8%, rgba(149,255,202,0.12), transparent 22%),
+        linear-gradient(180deg, #050a12 0%, #081321 45%, #050a12 100%);
     }
-    .app {
-      max-width: 1640px;
+    .shell {
+      max-width: 1440px;
       margin: 0 auto;
-      padding: 18px;
-      display: grid;
-      gap: 14px;
+      padding: 24px 18px 40px;
     }
-    .header {
+    .hero, .panel {
       border: 1px solid var(--line);
       border-radius: var(--radius);
-      background: linear-gradient(180deg, rgba(17, 28, 45, 0.97), rgba(12, 20, 33, 0.97));
+      background: linear-gradient(180deg, var(--panel-2), var(--panel));
       box-shadow: var(--shadow);
-      padding: 14px;
+    }
+    .hero {
+      padding: 26px;
+      margin-bottom: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 18% 14%, rgba(95,224,255,0.12), transparent 24%),
+        radial-gradient(circle at 82% 78%, rgba(149,255,202,0.08), transparent 20%);
+      pointer-events: none;
+    }
+    .hero-content, .hero-top { position: relative; z-index: 1; }
+    .hero-top {
       display: flex;
       justify-content: space-between;
+      gap: 18px;
       align-items: center;
-      gap: 14px;
       flex-wrap: wrap;
     }
     .brand {
-      display: grid;
-      grid-template-columns: 56px minmax(0, 1fr);
-      gap: 10px;
+      display: flex;
+      gap: 16px;
       align-items: center;
     }
     .brand img {
-      width: 56px;
-      height: 56px;
-      border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.15);
-      object-fit: cover;
-    }
-    .brand-title { margin: 0; font-size: 28px; line-height: 1; }
-    .brand-sub { margin: 4px 0 0; color: var(--muted); }
-    .runtime-pill {
-      border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 999px;
-      padding: 7px 12px;
-      color: #cae2ff;
-      font-size: 13px;
-      background: rgba(255,255,255,0.05);
-    }
-    .nav {
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: rgba(13, 22, 35, 0.93);
-      box-shadow: var(--shadow);
+      width: 76px;
+      height: 76px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
       padding: 10px;
-      display: flex;
-      gap: 8px;
-      overflow-x: auto;
     }
-    .nav button {
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 10px;
-      background: rgba(255,255,255,0.05);
-      color: var(--text);
-      font: inherit;
-      white-space: nowrap;
-      padding: 8px 11px;
-      cursor: pointer;
-    }
-    .nav button[aria-pressed="true"] {
-      border-color: #3e6fa2;
-      background: linear-gradient(180deg, rgba(34,98,172,0.7), rgba(23,71,128,0.75));
-    }
-    .view {
-      border: 1px solid var(--line);
-      border-radius: var(--radius);
-      background: linear-gradient(180deg, rgba(16, 26, 42, 0.96), rgba(12, 20, 34, 0.96));
-      box-shadow: var(--shadow);
-      padding: 16px;
-      display: grid;
-      gap: 14px;
-    }
-    .view[hidden] { display: none !important; }
-    .section-title {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      margin: 0;
-    }
-    .section-title h2 { margin: 0; font-size: 24px; }
-    .badge {
-      border: 1px solid rgba(255,255,255,0.16);
-      border-radius: 999px;
-      padding: 4px 10px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 10px;
-    }
-    .card {
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 11px;
-      background: rgba(255,255,255,0.05);
-      padding: 11px;
-    }
-    .card .k {
-      color: var(--muted);
-      font-size: 12px;
+    h1, h2, h3, p { margin: 0; }
+    h1 {
+      font-size: clamp(34px, 4vw, 56px);
+      line-height: 0.98;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: -0.04em;
     }
-    .card .v {
-      margin-top: 7px;
-      font-size: 23px;
-      font-weight: 700;
+    h2 {
+      font-size: 28px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
-    .grid-2 {
+    h3 {
+      font-size: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .sub {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.45;
+      max-width: 820px;
+    }
+    .hero-links {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .chip {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 18px;
     }
     .panel {
-      border: 1px solid rgba(255,255,255,0.13);
-      border-radius: 11px;
-      background: rgba(255,255,255,0.04);
-      padding: 12px;
-      display: grid;
-      gap: 10px;
+      padding: 18px;
+      min-width: 0;
     }
-    .quick {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    button, .btn {
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      background: rgba(255,255,255,0.07);
-      color: var(--text);
-      font: inherit;
-      padding: 9px 13px;
-      cursor: pointer;
-      text-decoration: none;
-    }
-    button:hover, .btn:hover { border-color: #3f668f; transform: translateY(-1px); }
-    .primary { background: linear-gradient(180deg, #1f8fff, #156ac7); border-color: #257dd8; }
-    .warn { background: linear-gradient(180deg, #cb8e22, #99670d); border-color: #cb8a19; }
-    .good { background: linear-gradient(180deg, #16ad70, #118754); border-color: #14945f; }
-    .kv { display: grid; gap: 8px; }
-    .kv-row {
+    .span-12 { grid-column: span 12; }
+    .span-8 { grid-column: span 8; }
+    .span-7 { grid-column: span 7; }
+    .span-6 { grid-column: span 6; }
+    .span-5 { grid-column: span 5; }
+    .span-4 { grid-column: span 4; }
+    .span-3 { grid-column: span 3; }
+    .section-head {
       display: flex;
       justify-content: space-between;
-      gap: 10px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      padding: 6px 0;
-      font-size: 14px;
-    }
-    .kv-row:last-child { border-bottom: 0; }
-    .muted { color: var(--muted); }
-    .chips { display: flex; gap: 8px; flex-wrap: wrap; }
-    .chip {
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 999px;
-      background: rgba(255,255,255,0.04);
-      padding: 6px 10px;
-      font-size: 12px;
-    }
-    .form {
-      display: grid;
-      gap: 10px;
-    }
-    .field { display: grid; gap: 6px; }
-    label { color: var(--muted); font-size: 13px; }
-    input[type="text"], input[type="number"], textarea, select {
-      width: 100%;
-      border-radius: 10px;
-      border: 1px solid var(--line);
-      background: #0d1a2e;
-      color: var(--text);
-      padding: 10px 11px;
-      font: inherit;
-    }
-    textarea { min-height: 88px; resize: vertical; }
-    .check {
-      border: 1px solid var(--line);
-      border-radius: 10px;
-      background: #0d1a2e;
-      padding: 10px 11px;
-      display: flex;
       align-items: center;
-      gap: 8px;
-      color: var(--text);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .meta {
+      color: var(--muted);
       font-size: 14px;
+      line-height: 1.4;
     }
-    .check input { width: 17px; height: 17px; }
-    details {
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 10px;
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+    .stat {
+      padding: 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255,255,255,0.07);
       background: rgba(255,255,255,0.03);
-      padding: 8px 10px;
     }
-    details > summary { cursor: pointer; color: #c3d8f5; }
-    .sources {
+    .stat .label { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .stat .value { margin-top: 8px; font-size: 28px; }
+    form { display: grid; gap: 14px; }
+    .form-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
     }
-    .source-card {
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 11px;
-      background: rgba(255,255,255,0.04);
-      padding: 10px;
+    label {
       display: grid;
-      gap: 8px;
-    }
-    .source-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 9px;
-      align-items: flex-start;
-    }
-    .source-url {
-      color: #cde5ff;
-      text-decoration: none;
-      word-break: break-all;
-      font-size: 13px;
-    }
-    .source-runtime {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 6px;
+      color: var(--muted);
+      font-size: 15px;
     }
-    .box {
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 9px;
-      padding: 8px 9px;
-      background: rgba(0,0,0,0.16);
-      font-size: 13px;
-    }
-    table {
+    input, textarea, select {
       width: 100%;
-      border-collapse: collapse;
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    th, td {
-      padding: 10px;
-      border-bottom: 1px solid rgba(255,255,255,0.08);
-      text-align: left;
-      font-size: 13px;
-      vertical-align: top;
-    }
-    th {
-      color: var(--muted);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
       background: rgba(255,255,255,0.04);
+      color: var(--text);
+      padding: 12px 14px;
+      font: inherit;
     }
-    tr:last-child td { border-bottom: 0; }
-    .event-type {
-      border: 1px solid rgba(255,255,255,0.14);
-      border-radius: 999px;
-      padding: 4px 8px;
-      display: inline-block;
+    textarea { min-height: 92px; resize: vertical; }
+    .checkbox-row, .button-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
     }
-    .footer {
-      border: 1px solid var(--line);
-      border-radius: 11px;
+    .checkbox {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
       background: rgba(255,255,255,0.03);
-      color: var(--muted);
-      padding: 11px;
-      font-size: 13px;
-      text-align: center;
+    }
+    .checkbox input { width: auto; margin: 0; }
+    button {
+      border: 0;
+      border-radius: 12px;
+      padding: 12px 16px;
+      font: inherit;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
+      color: #03121a;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      cursor: pointer;
     }
-    .footer a, .brand-sub a { color: var(--accent); text-decoration: none; }
-    .intro-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 70;
+    button.secondary {
+      color: var(--text);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    button.warn {
+      background: linear-gradient(135deg, #ffde8d, var(--warn));
+      color: #271600;
+    }
+    .status-line {
+      min-height: 22px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .status-line.error { color: var(--bad); }
+    .status-line.ok { color: var(--accent-2); }
+    .cards {
       display: grid;
-      place-items: center;
-      padding: 18px;
-      background: rgba(3, 8, 14, 0.92);
-      backdrop-filter: blur(4px);
+      gap: 12px;
     }
-    .intro-overlay[hidden] { display: none !important; }
-    .intro-card {
-      width: min(960px, 100%);
-      border: 1px solid rgba(255,255,255,0.2);
+    .card {
+      padding: 14px;
       border-radius: 14px;
-      background: #050a12;
-      box-shadow: var(--shadow);
-      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      display: grid;
+      gap: 10px;
     }
-    .intro-video-wrap { width: 100%; aspect-ratio: 16 / 9; background: #000; }
-    .intro-video { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .intro-actions {
+    .card-top {
       display: flex;
       justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+    }
+    .card p { color: var(--muted); line-height: 1.4; }
+    .inline-list {
+      display: flex;
       gap: 8px;
       flex-wrap: wrap;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(95,224,255,0.08);
+      border: 1px solid rgba(95,224,255,0.16);
+      color: var(--text);
+      font-size: 13px;
+    }
+    .code {
       padding: 12px;
-      border-top: 1px solid rgba(255,255,255,0.12);
-      background: rgba(14, 22, 35, 0.97);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.24);
+      font-family: "Consolas", "SFMono-Regular", monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: #d9f2ff;
     }
-    .toast {
+    .table {
+      display: grid;
+      gap: 10px;
+    }
+    .source-row {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+    }
+    .source-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .overlay {
       position: fixed;
-      right: 16px;
-      bottom: 16px;
-      z-index: 65;
-      min-width: 280px;
-      max-width: 420px;
-      border: 1px solid var(--line);
-      border-radius: 11px;
-      background: rgba(8, 16, 30, 0.96);
-      padding: 12px 14px;
+      inset: 0;
+      background: rgba(1, 5, 10, 0.82);
       display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      z-index: 999;
+      backdrop-filter: blur(10px);
     }
-    .toast.show { display: block; }
-    @media (max-width: 1300px) {
-      .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .grid-2 { grid-template-columns: 1fr; }
-      .sources { grid-template-columns: 1fr; }
+    .overlay.visible { display: flex; }
+    .overlay-card {
+      width: min(980px, 100%);
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(180deg, rgba(15,26,42,0.98), rgba(8,14,22,0.98));
+      box-shadow: 0 28px 80px rgba(0,0,0,0.42);
+      padding: 24px;
     }
-    @media (max-width: 760px) {
-      .cards { grid-template-columns: 1fr; }
-      .quick button, .quick .btn { width: 100%; }
+    .step-strip {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 0 0 18px;
+    }
+    .step-pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.03);
+      color: var(--muted);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .step-pill.active {
+      color: #03121a;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      border-color: transparent;
+    }
+    .wizard-step { display: none; gap: 16px; }
+    .wizard-step.active { display: grid; }
+    .preview-grid {
+      display: grid;
+      gap: 12px;
+    }
+    button:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+    .shop-options {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 10px;
+    }
+    .muted { color: var(--muted); }
+    .hidden { display: none !important; }
+    @media (max-width: 980px) {
+      .span-8, .span-7, .span-6, .span-5, .span-4, .span-3 { grid-column: span 12; }
+      .form-grid { grid-template-columns: 1fr; }
+      .hero-top { align-items: flex-start; }
     }
   </style>
 </head>
 <body>
-  <div class="app">
-    <header class="header">
-      <div class="brand">
-        <img src="/assets/branding/logo-main.png" alt="Alertivo Logo">
+  <div class="overlay" id="introOverlay">
+    <div class="overlay-card">
+      <div class="section-head">
         <div>
-          <h1 class="brand-title">Alertivo</h1>
-          <p class="brand-sub">Schnell, lokal, klar strukturiert • dev by Ivo • <a href="http://ivo-tech.com" target="_blank" rel="noreferrer">ivo-tech.com</a></p>
+          <h2>Ersteinrichtung</h2>
+          <p class="sub">Alertivo speichert Benutzerdaten jetzt unter `%APPDATA%\Alertivo`. Lege hier Benachrichtigungen und dein erstes Suchprofil an.</p>
         </div>
       </div>
-      <div class="runtime-pill" id="runtimePill" aria-live="polite">Runtime: loading</div>
-    </header>
-
-    <nav class="nav" aria-label="Bereiche">
-      <button type="button" data-view-target="dashboard" aria-pressed="true">Dashboard</button>
-      <button type="button" data-view-target="setup" aria-pressed="false">Setup</button>
-      <button type="button" data-view-target="sources" aria-pressed="false">Quellen</button>
-      <button type="button" data-view-target="alerts" aria-pressed="false">Alerts</button>
-      <button type="button" data-view-target="advanced" aria-pressed="false">Advanced</button>
-    </nav>
-
-    <section class="view" data-view="dashboard">
-      <div class="section-title">
-        <h2>Systemstatus</h2>
-        <span class="badge">Status zuerst</span>
+      <div class="step-strip">
+        <div class="step-pill" data-step-indicator="0">1 Willkommen</div>
+        <div class="step-pill" data-step-indicator="1">2 Benachrichtigungen</div>
+        <div class="step-pill" data-step-indicator="2">3 Tracker</div>
+        <div class="step-pill" data-step-indicator="3">4 Distill</div>
       </div>
-      <div class="cards" id="stats"></div>
-      <div class="grid-2">
-        <article class="panel">
-          <div class="section-title"><h2 style="font-size:20px;">Quick Actions</h2></div>
-          <div class="quick">
-            <button class="primary" id="refreshBtn">Aktualisieren</button>
-            <button id="pauseResumeBtn">Monitoring pausieren</button>
-            <button id="restartRuntimeBtn">Neu starten</button>
-            <button class="good" data-preset="price_drop">Test Alert</button>
-          </div>
-        </article>
-        <article class="panel">
-          <div class="section-title"><h2 style="font-size:20px;">Runtime-Details</h2></div>
-          <div class="kv" id="runtimeMeta"></div>
-          <div class="chips" id="channelChips"></div>
-        </article>
-      </div>
-    </section>
-
-    <section class="view" data-view="setup" hidden>
-      <div class="section-title">
-        <h2>Setup (KISS)</h2>
-        <span class="badge">3 Pflichtfelder</span>
-      </div>
-      <form class="form" id="setupForm">
-        <div class="grid-2">
-          <div class="field">
-            <label for="setupDisplayName">1) Anzeigename</label>
-            <input id="setupDisplayName" type="text" maxlength="60" placeholder="z. B. Ivo">
-          </div>
-          <div class="field">
-            <label for="setupStartSource">2) Startquelle</label>
-            <select id="setupStartSource"></select>
-          </div>
-        </div>
-        <label class="check"><input id="setupAutostart" type="checkbox"> 3) Autostart aktivieren (optional)</label>
-        <div class="quick">
-          <button class="primary" type="submit">Setup speichern</button>
-          <button class="warn" id="rollbackConfigBtn" type="button">Backup-Rollback</button>
-        </div>
-        <details>
-          <summary>Advanced Optionen</summary>
-          <div class="form" style="margin-top:10px;">
-            <label class="check"><input id="setupSimpleMode" type="checkbox" checked> Simple Mode (Webhook aus)</label>
-            <label class="check"><input id="setupCloseToTray" type="checkbox"> Beim Schliessen in Tray minimieren</label>
-            <label class="check"><input id="setupIntroEnabled" type="checkbox" checked> Intro-Reveal anzeigen</label>
-            <label class="check"><input id="setupWebhookEnabled" type="checkbox"> Webhook aktivieren</label>
-          </div>
-        </details>
-      </form>
-    </section>
-
-    <section class="view" data-view="sources" hidden>
-      <div class="section-title">
-        <h2>Quellen</h2>
-        <span class="badge">Bearbeiten und steuern</span>
-      </div>
-      <div class="sources" id="sourcesGrid"></div>
-    </section>
-
-    <section class="view" data-view="alerts" hidden>
-      <div class="section-title">
-        <h2>Alert-Historie</h2>
-        <span class="badge">Events und Offers</span>
-      </div>
-      <div class="grid-2">
-        <article class="panel">
-          <h3 style="margin:0;">Letzte Events</h3>
-          <div style="overflow:auto;">
-            <table>
-              <thead>
-                <tr><th>Zeit</th><th>Typ</th><th>Shop</th><th>Titel</th><th>Preis</th></tr>
-              </thead>
-              <tbody id="eventsTable"></tbody>
-            </table>
-          </div>
-        </article>
-        <article class="panel">
-          <h3 style="margin:0;">Letzte Offers</h3>
-          <div style="overflow:auto;">
-            <table>
-              <thead>
-                <tr><th>Shop</th><th>Titel</th><th>Preis</th><th>Stock</th><th>Zuletzt</th></tr>
-              </thead>
-              <tbody id="offersTable"></tbody>
-            </table>
-          </div>
-        </article>
-      </div>
-    </section>
-
-    <section class="view" data-view="advanced" hidden>
-      <div class="section-title">
-        <h2>Advanced</h2>
-        <span class="badge">Globale Regeln und Distill</span>
-      </div>
-      <div class="grid-2">
-        <article class="panel">
-          <h3 style="margin:0;">Globale Regeln</h3>
-          <form class="form" id="settingsForm">
-            <div class="grid-2">
-              <div class="field">
-                <label for="refAge">Mindestalter Referenzpreis (Sek.)</label>
-                <input id="refAge" name="new_listing_reference_min_age_seconds" type="number" min="0" step="1">
+      <form id="onboardingForm">
+        <section class="wizard-step" data-wizard-step="0">
+          <div class="panel" style="padding:16px;">
+            <div class="section-head">
+              <div>
+                <h3>Willkommen</h3>
+                <p class="meta">Die App ist jetzt trackerbasiert. Systemdefaults bleiben im Projektordner, alles Nutzerbezogene liegt in `%APPDATA%\Alertivo`.</p>
               </div>
-              <label class="check"><input id="restockToggle" name="enable_restock_alerts" type="checkbox"> Restock-Alerts aktiv</label>
             </div>
-            <div class="field">
-              <label for="rtxExcludeCompletePcTerms">RTX Blockliste: Komplett-PC</label>
-              <textarea id="rtxExcludeCompletePcTerms" name="rtx_5070_ti_exclude_complete_pc_terms"></textarea>
+            <div class="form-grid">
+              <label>
+                Anzeigename
+                <input id="onboardingDisplayName" placeholder="Alertivo User">
+              </label>
             </div>
-            <div class="field">
-              <label for="rtxExcludeNotebookTerms">RTX Blockliste: Notebooks</label>
-              <textarea id="rtxExcludeNotebookTerms" name="rtx_5070_ti_exclude_notebook_terms"></textarea>
+            <div class="checkbox-row">
+              <label class="checkbox"><input type="checkbox" id="onboardingSimpleMode" checked> Simple Mode aktiv</label>
+              <label class="checkbox"><input type="checkbox" id="onboardingAutostart"> Autostart aktivieren</label>
+              <label class="checkbox"><input type="checkbox" id="onboardingCloseToTray"> Beim Schließen in Tray minimieren</label>
             </div>
-            <div class="field">
-              <label for="rtxExcludeBundleTerms">RTX Blockliste: Bundles</label>
-              <textarea id="rtxExcludeBundleTerms" name="rtx_5070_ti_exclude_bundle_terms"></textarea>
-            </div>
-            <div class="field">
-              <label for="rtxExcludeDefectTerms">RTX Blockliste: Defekt/Bastler</label>
-              <textarea id="rtxExcludeDefectTerms" name="rtx_5070_ti_exclude_defect_terms"></textarea>
-            </div>
-            <button class="primary" type="submit">Globale Einstellungen speichern</button>
-          </form>
-        </article>
-        <article class="panel">
-          <h3 style="margin:0;">Distill-Ziele</h3>
-          <div class="sources" id="distillTargets"></div>
-        </article>
-      </div>
-    </section>
+          </div>
+          <div class="button-row">
+            <button type="button" id="onboardingWelcomeNext">Weiter</button>
+          </div>
+        </section>
 
-    <footer class="footer">
-      Alertivo • dev by Ivo • <a href="http://ivo-tech.com" target="_blank" rel="noreferrer">ivo-tech.com</a> • <a href="/status-dashboard">Status-Dashboard Einstieg</a>
-    </footer>
-  </div>
+        <section class="wizard-step" data-wizard-step="1">
+          <div class="panel" style="padding:16px;">
+            <div class="section-head">
+              <div>
+                <h3>Benachrichtigungen</h3>
+                <p class="meta">Telegram und Discord koennen sofort mit einer echten Testnachricht validiert werden. Distill erzeugt spaeter den lokalen Webhook-Schutzheader.</p>
+              </div>
+            </div>
+            <div class="form-grid">
+              <label>
+                Distill Token
+                <input id="onboardingDistillToken" placeholder="optional, aber empfohlen fuer Webhook-Schutz">
+              </label>
+              <div class="meta">Der Token wird in den Distill-Snippets als `X-Webhook-Token` eingebaut.</div>
+            </div>
+            <div class="form-grid">
+              <label>
+                Telegram Bot Token
+                <input id="onboardingTelegramToken" placeholder="123456789:...">
+              </label>
+              <label>
+                Telegram Chat ID
+                <input id="onboardingTelegramChat" placeholder="z. B. 123456789">
+              </label>
+            </div>
+            <label>
+              Discord Webhook URL
+              <input id="onboardingDiscordWebhook" placeholder="https://discord.com/api/webhooks/...">
+            </label>
+            <div class="button-row">
+              <button type="button" class="secondary" id="onboardingTestTelegramButton">Telegram testen</button>
+              <button type="button" class="secondary" id="onboardingTestDiscordButton">Discord testen</button>
+              <button type="button" class="secondary" id="onboardingTestAllButton">Alle Kanaele testen</button>
+            </div>
+          </div>
+          <div class="button-row">
+            <button type="button" class="secondary" id="onboardingNotificationsBack">Zurueck</button>
+            <button type="button" id="onboardingNotificationsNext">Weiter</button>
+          </div>
+        </section>
 
-  <div class="intro-overlay" id="introOverlay" hidden>
-    <div class="intro-card">
-      <div class="intro-video-wrap">
-        <video class="intro-video" id="introVideo" muted playsinline preload="auto" poster="/assets/branding/logo-main.png"></video>
-      </div>
-      <div class="intro-actions">
-        <button class="primary" id="introSkipBtn">Skip Intro</button>
-        <button class="warn" id="introDisableBtn">Nicht mehr anzeigen</button>
-      </div>
+        <section class="wizard-step" data-wizard-step="2">
+          <div class="panel" style="padding:16px;">
+            <div class="section-head">
+              <div>
+                <h3>Erster Tracker</h3>
+                <p class="meta">Beliebiges Produktprofil mit eigenen Shops, Include- und Exclude-Filtern.</p>
+              </div>
+            </div>
+          <div class="form-grid">
+            <label>
+              Produktname
+              <input id="onboardingTrackerName" placeholder="PS5 Pro">
+            </label>
+            <label>
+              Suchanfrage
+              <input id="onboardingTrackerQuery" placeholder="PS5 Pro">
+            </label>
+          </div>
+          <div class="form-grid">
+            <label>
+              Include Terms
+              <textarea id="onboardingIncludeTerms" placeholder="ps5, pro"></textarea>
+            </label>
+            <label>
+              Exclude Terms
+              <textarea id="onboardingExcludeTerms" placeholder="bundle, digital, defekt"></textarea>
+            </label>
+          </div>
+          <div>
+            <div class="meta" style="margin-bottom:8px;">Shops auswählen</div>
+            <div class="shop-options" id="onboardingShopOptions"></div>
+          </div>
+          </div>
+          <div class="button-row">
+            <button type="button" class="secondary" id="onboardingTrackerBack">Zurueck</button>
+            <button type="button" id="onboardingTrackerNext">Weiter</button>
+          </div>
+        </section>
+
+        <section class="wizard-step" data-wizard-step="3">
+          <div class="panel" style="padding:16px;">
+            <div class="section-head">
+              <div>
+                <h3>Distill-Hilfe</h3>
+                <p class="meta">Hier siehst du die exakten Webhook-Snippets fuer die aktuell gewaehltenden Distill-faehigen Shops deines ersten Trackers.</p>
+              </div>
+            </div>
+            <div class="button-row">
+              <button type="button" class="secondary" id="onboardingPreviewRefresh">Vorschau aktualisieren</button>
+            </div>
+            <div class="preview-grid" id="onboardingPreviewCards"></div>
+          </div>
+          <div class="button-row">
+            <button type="button" class="secondary" id="onboardingPreviewBack">Zurueck</button>
+            <button type="submit">Setup abschliessen</button>
+          </div>
+        </section>
+        <div class="status-line" id="onboardingStatus"></div>
+      </form>
     </div>
   </div>
 
-  <div class="toast" id="toast"></div>
+  <div class="shell">
+    <section class="hero">
+      <div class="hero-top">
+        <div class="brand">
+          <img src="/assets/branding/logo-main.png" alt="Alertivo Logo">
+          <div class="hero-content">
+            <div class="chip">ivo-tech.com</div>
+            <h1>Alertivo</h1>
+            <p class="sub">Tracker-basierte Desktop-App für lokale Preis- und Verfügbarkeitsalarme. Konfiguration und Nutzerdaten liegen getrennt in `system.json` und `%APPDATA%\Alertivo`.</p>
+          </div>
+        </div>
+        <div class="hero-links">
+          <div class="chip" id="controlCenterUrl">127.0.0.1:8787</div>
+          <div class="chip" id="webhookUrl">Webhook</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="panel span-12">
+        <div class="section-head">
+          <div>
+            <h2>Runtime</h2>
+            <p class="meta">Monitoring, lokale URLs und Laufzeitstatus.</p>
+          </div>
+          <div class="button-row">
+            <button type="button" class="secondary" id="startButton">Start</button>
+            <button type="button" class="secondary" id="stopButton">Stop</button>
+            <button type="button" class="warn" id="restartButton">Restart</button>
+          </div>
+        </div>
+        <div class="stats" id="runtimeStats"></div>
+      </section>
+
+      <section class="panel span-7">
+        <div class="section-head">
+          <div>
+            <h2>Einstellungen</h2>
+            <p class="meta">Benutzerprofil, Benachrichtigungskanäle und globale Monitoring-Werte.</p>
+          </div>
+        </div>
+        <form id="settingsForm">
+          <div class="form-grid">
+            <label>
+              Anzeigename
+              <input id="displayName">
+            </label>
+            <label>
+              Sound-Datei
+              <input id="soundFile" placeholder="optional, z. B. C:\\Windows\\Media\\Alarm01.wav">
+            </label>
+          </div>
+          <div class="form-grid">
+            <label>
+              Telegram Bot Token
+              <input id="telegramBotToken">
+            </label>
+            <label>
+              Telegram Chat ID
+              <input id="telegramChatId">
+            </label>
+          </div>
+          <label>
+            Discord Webhook URL
+            <input id="discordWebhookUrl">
+          </label>
+          <div class="form-grid">
+            <label>
+              Distill Token
+              <input id="distillToken">
+            </label>
+            <label>
+              Referenzalter für neue Listings (Sekunden)
+              <input id="newListingAge" type="number" min="0">
+            </label>
+          </div>
+          <div class="checkbox-row">
+            <label class="checkbox"><input type="checkbox" id="simpleMode"> Simple Mode</label>
+            <label class="checkbox"><input type="checkbox" id="closeToTray"> Close to Tray</label>
+            <label class="checkbox"><input type="checkbox" id="autostartEnabled"> Autostart</label>
+            <label class="checkbox"><input type="checkbox" id="introEnabled"> Intro Overlay</label>
+            <label class="checkbox"><input type="checkbox" id="telegramEnabled"> Telegram aktiv</label>
+            <label class="checkbox"><input type="checkbox" id="discordEnabled"> Discord aktiv</label>
+            <label class="checkbox"><input type="checkbox" id="distillEnabled"> Distill/Webhook aktiv</label>
+            <label class="checkbox"><input type="checkbox" id="windowsNotificationsEnabled"> Windows Toast</label>
+            <label class="checkbox"><input type="checkbox" id="soundEnabled"> Sound</label>
+            <label class="checkbox"><input type="checkbox" id="enableRestockAlerts"> Restock Alerts</label>
+          </div>
+          <div class="button-row">
+            <button type="submit">Einstellungen speichern</button>
+            <button type="button" class="secondary" id="testTelegramButton">Telegram testen</button>
+            <button type="button" class="secondary" id="testDiscordButton">Discord testen</button>
+            <button type="button" class="secondary" id="testAllNotificationsButton">Kanaele testen</button>
+            <button type="button" class="secondary" id="testAlertButton">System-Testalert</button>
+          </div>
+          <div class="status-line" id="settingsStatus"></div>
+        </form>
+      </section>
+
+      <section class="panel span-5">
+        <div class="section-head">
+          <div>
+            <h2>Neuer Tracker</h2>
+            <p class="meta">Erzeugt eine neue Datei unter `trackers/*.json`.</p>
+          </div>
+        </div>
+        <form id="trackerForm">
+          <div class="form-grid">
+            <label>
+              Produktname
+              <input id="trackerName" placeholder="PS5 Pro">
+            </label>
+            <label>
+              Suchanfrage
+              <input id="trackerQuery" placeholder="PS5 Pro">
+            </label>
+          </div>
+          <div class="form-grid">
+            <label>
+              Include Terms
+              <textarea id="trackerIncludeTerms" placeholder="ps5, pro"></textarea>
+            </label>
+            <label>
+              Exclude Terms
+              <textarea id="trackerExcludeTerms" placeholder="bundle, digital, defekt"></textarea>
+            </label>
+          </div>
+          <div class="form-grid">
+            <label>
+              Preisobergrenze
+              <input id="trackerPriceCeiling" type="number" step="0.01" min="0">
+            </label>
+            <label>
+              Neues Listing unter Preis
+              <input id="trackerNewListingThreshold" type="number" step="0.01" min="0">
+            </label>
+          </div>
+          <div>
+            <div class="meta" style="margin-bottom:8px;">Shop-Auswahl</div>
+            <div class="shop-options" id="trackerShopOptions"></div>
+          </div>
+          <div class="button-row">
+            <button type="submit">Tracker anlegen</button>
+          </div>
+          <div class="status-line" id="trackerStatus"></div>
+        </form>
+      </section>
+
+      <section class="panel span-6">
+        <div class="section-head">
+          <div>
+            <h2>Tracker</h2>
+            <p class="meta">Aktive Suchprofile aus `%APPDATA%\Alertivo\trackers`.</p>
+          </div>
+        </div>
+        <div class="cards" id="trackerCards"></div>
+      </section>
+
+      <section class="panel span-6">
+        <div class="section-head">
+          <div>
+            <h2>Quellen</h2>
+            <p class="meta">Abgeleitete Runtime-Sources pro Tracker und Shop.</p>
+          </div>
+        </div>
+        <div class="table" id="sourceTable"></div>
+      </section>
+
+      <section class="panel span-12">
+        <div class="section-head">
+          <div>
+            <h2>Distill Snippets</h2>
+            <p class="meta">Lokale Webhook-Snippets mit Token und Tracker-Filtern zum Copy & Paste.</p>
+          </div>
+        </div>
+        <div class="cards" id="distillCards"></div>
+      </section>
+    </div>
+  </div>
 
   <script>
-    const state = { data: null, dirtySources: new Set(), introInitialized: false, activeView: "dashboard" };
     const api = {
       state: "/api/control-center/state",
+      runtime: "/api/control-center/runtime",
       runtimeCommand: "/api/control-center/runtime/command",
       test: "/api/control-center/test-alert",
+      notificationTest: "/api/control-center/notifications/test",
+      distillPreview: "/api/control-center/distill-preview",
       settings: "/api/control-center/settings",
       source: (name) => `/api/control-center/source/${encodeURIComponent(name)}`,
       onboarding: "/api/control-center/onboarding",
-      migrationRollback: "/api/control-center/migration/rollback",
+      trackers: "/api/control-center/trackers",
+      tracker: (id) => `/api/control-center/tracker/${encodeURIComponent(id)}`,
     };
-    const INTRO_DISABLED_KEY = "ivo_intro_disabled";
-    const introVideos = [
-      "/assets/branding/intro-cinlogoreveal.mp4",
-      "/assets/branding/intro-firefly-scanning.mp4",
-      "/assets/branding/intro-firefly-epic.mp4",
-      "/assets/branding/intro-grok.mp4",
-    ];
 
-    function escapeHtml(value) {
-      return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#39;");
-    }
-    function fmtDate(value) {
-      if (!value) return "–";
-      const date = new Date(value);
-      if (Number.isNaN(date.getTime())) return value;
-      return new Intl.DateTimeFormat("de-DE", { dateStyle: "short", timeStyle: "medium" }).format(date);
-    }
-    function fmtMoney(value, currency = "EUR") {
-      if (value === null || value === undefined || value === "") return "–";
-      const num = Number(String(value).replace(",", "."));
-      if (Number.isNaN(num)) return `${value} ${currency}`;
-      return new Intl.NumberFormat("de-DE", { style: "currency", currency, maximumFractionDigits: 2 }).format(num);
-    }
-    function uptimeLabel(seconds) {
-      const sec = Number(seconds || 0);
-      const h = Math.floor(sec / 3600);
-      const m = Math.floor((sec % 3600) / 60);
-      const s = sec % 60;
-      return `${h}h ${m}m ${s}s`;
-    }
-    function showToast(message, isError = false) {
-      const node = document.getElementById("toast");
-      node.innerHTML = `<strong>${isError ? "Fehler" : "Info"}</strong><div style="margin-top:6px;color:#9cb4d6;">${escapeHtml(message)}</div>`;
-      node.style.borderColor = isError ? "rgba(255,107,107,0.45)" : "rgba(93,176,255,0.35)";
-      node.classList.add("show");
-      clearTimeout(showToast.timer);
-      showToast.timer = setTimeout(() => node.classList.remove("show"), 3500);
-    }
-    async function request(url, options = {}) {
-      const response = await fetch(url, { headers: { "Content-Type": "application/json" }, ...options });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || data.message || response.statusText);
-      return data;
-    }
+    const els = {
+      introOverlay: document.getElementById("introOverlay"),
+      controlCenterUrl: document.getElementById("controlCenterUrl"),
+      webhookUrl: document.getElementById("webhookUrl"),
+      runtimeStats: document.getElementById("runtimeStats"),
+      trackerCards: document.getElementById("trackerCards"),
+      sourceTable: document.getElementById("sourceTable"),
+      distillCards: document.getElementById("distillCards"),
+      onboardingPreviewCards: document.getElementById("onboardingPreviewCards"),
+      onboardingShopOptions: document.getElementById("onboardingShopOptions"),
+      trackerShopOptions: document.getElementById("trackerShopOptions"),
+      onboardingStatus: document.getElementById("onboardingStatus"),
+      settingsStatus: document.getElementById("settingsStatus"),
+      trackerStatus: document.getElementById("trackerStatus"),
+    };
 
-    function switchView(view) {
-      state.activeView = view;
-      document.querySelectorAll("[data-view]").forEach((node) => { node.hidden = node.getAttribute("data-view") !== view; });
-      document.querySelectorAll("[data-view-target]").forEach((button) => {
-        button.setAttribute("aria-pressed", button.getAttribute("data-view-target") === view ? "true" : "false");
+    let currentState = null;
+    let overlayHydrated = false;
+    let wizardStepIndex = 0;
+    let reconnectDeadline = 0;
+
+    const RECONNECT_WINDOW_MS = 15000;
+    const RECONNECT_RETRY_MS = 600;
+
+    async function request(url, init = {}) {
+      const response = await fetch(url, {
+        headers: { "Content-Type": "application/json" },
+        ...init,
       });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || `HTTP ${response.status}`);
+      }
+      return payload;
     }
 
-    function closeIntroOverlay() {
-      const overlay = document.getElementById("introOverlay");
-      const video = document.getElementById("introVideo");
-      overlay.hidden = true;
-      video.pause();
-      video.removeAttribute("src");
-      video.load();
+    function sleep(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
     }
-    function initIntroOverlay(profile) {
-      const overlay = document.getElementById("introOverlay");
-      const video = document.getElementById("introVideo");
-      if (profile && profile.intro_enabled === false) {
-        overlay.hidden = true;
-        return;
+
+    function expectReconnect(durationMs = RECONNECT_WINDOW_MS) {
+      reconnectDeadline = Math.max(reconnectDeadline, Date.now() + durationMs);
+    }
+
+    function reconnectExpected() {
+      return reconnectDeadline > Date.now();
+    }
+
+    function clearReconnectExpectation() {
+      reconnectDeadline = 0;
+    }
+
+    function setStatus(element, message, type = "") {
+      element.textContent = message || "";
+      element.className = `status-line ${type}`.trim();
+    }
+
+    function parseTerms(value) {
+      return value
+        .split(/[,\n]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+
+    function shopSelectorMarkup(prefix, shops, selectedValues) {
+      return shops.map((shop) => `
+        <label class="checkbox">
+          <input type="checkbox" data-shop-prefix="${prefix}" value="${shop.shop_id}" ${selectedValues.has(shop.shop_id) ? "checked" : ""}>
+          <span>${shop.label}</span>
+        </label>
+      `).join("");
+    }
+
+    function collectSelectedShops(prefix) {
+      return Array.from(document.querySelectorAll(`input[data-shop-prefix="${prefix}"]:checked`)).map((input) => ({
+        shop_id: input.value,
+        enabled: true,
+        mode: "auto",
+      }));
+    }
+
+    function selectedShopIds(prefix) {
+      return new Set(
+        Array.from(document.querySelectorAll(`input[data-shop-prefix="${prefix}"]:checked`)).map((input) => input.value)
+      );
+    }
+
+    function formHasFocus(formId) {
+      const form = document.getElementById(formId);
+      return !!(form && document.activeElement && form.contains(document.activeElement));
+    }
+
+    function setWizardStep(nextIndex) {
+      wizardStepIndex = Math.max(0, Math.min(3, nextIndex));
+      document.querySelectorAll("[data-wizard-step]").forEach((step) => {
+        step.classList.toggle("active", Number(step.getAttribute("data-wizard-step")) === wizardStepIndex);
+      });
+      document.querySelectorAll("[data-step-indicator]").forEach((indicator) => {
+        indicator.classList.toggle("active", Number(indicator.getAttribute("data-step-indicator")) === wizardStepIndex);
+      });
+      if (wizardStepIndex === 3) {
+        refreshOnboardingPreview().catch((error) => {
+          setStatus(els.onboardingStatus, error.message, "error");
+        });
       }
-      if (localStorage.getItem(INTRO_DISABLED_KEY) === "1") {
-        overlay.hidden = true;
-        return;
-      }
-      const selected = introVideos[Math.floor(Math.random() * introVideos.length)];
-      video.src = selected;
-      overlay.hidden = false;
-      const playPromise = video.play();
-      if (playPromise && typeof playPromise.catch === "function") playPromise.catch(() => {});
-      document.getElementById("introSkipBtn").onclick = closeIntroOverlay;
-      document.getElementById("introDisableBtn").onclick = () => {
-        localStorage.setItem(INTRO_DISABLED_KEY, "1");
-        closeIntroOverlay();
+    }
+
+    function buildTrackerPayload(prefix) {
+      const isOnboarding = prefix === "onboarding";
+      const nameFieldId = isOnboarding ? "onboardingTrackerName" : "trackerName";
+      const queryFieldId = isOnboarding ? "onboardingTrackerQuery" : "trackerQuery";
+      const includeFieldId = isOnboarding ? "onboardingIncludeTerms" : "trackerIncludeTerms";
+      const excludeFieldId = isOnboarding ? "onboardingExcludeTerms" : "trackerExcludeTerms";
+      const name = document.getElementById(nameFieldId).value.trim();
+      const queryValue = document.getElementById(queryFieldId).value.trim();
+      return {
+        name,
+        query: queryValue || name,
+        include_terms: parseTerms(document.getElementById(includeFieldId).value),
+        exclude_terms: parseTerms(document.getElementById(excludeFieldId).value),
+        price_ceiling: isOnboarding ? null : (document.getElementById("trackerPriceCeiling").value || null),
+        new_listing_price_below: isOnboarding ? null : (document.getElementById("trackerNewListingThreshold").value || null),
+        shops: collectSelectedShops(prefix),
       };
-      video.onended = closeIntroOverlay;
     }
 
-    function renderStats(data) {
-      const stats = [
-        ["Runtime", `${data.desktop.state}${data.desktop.paused ? " (paused)" : ""}`],
-        ["Aktive Quellen", data.sources.filter((source) => source.enabled).length],
-        ["Fehler aktiv", data.sources.filter((source) => source.consecutive_failures > 0).length],
-        ["Events", data.summary.events_count],
-        ["Uptime", uptimeLabel(data.runtime.uptime_seconds)],
-      ];
-      document.getElementById("stats").innerHTML = stats.map(([k, v]) => `
+    function buildNotificationPayload(mode) {
+      if (mode === "onboarding") {
+        const telegramToken = document.getElementById("onboardingTelegramToken").value.trim();
+        const telegramChat = document.getElementById("onboardingTelegramChat").value.trim();
+        const discordWebhook = document.getElementById("onboardingDiscordWebhook").value.trim();
+        return {
+          display_name: document.getElementById("onboardingDisplayName").value.trim(),
+          telegram_enabled: !!(telegramToken && telegramChat),
+          telegram_bot_token: telegramToken,
+          telegram_chat_id: telegramChat,
+          discord_enabled: !!discordWebhook,
+          discord_webhook_url: discordWebhook,
+          windows_notifications_enabled: false,
+          sound_enabled: false,
+          distill_token: document.getElementById("onboardingDistillToken").value.trim(),
+        };
+      }
+      return {
+        display_name: document.getElementById("displayName").value.trim(),
+        telegram_enabled: document.getElementById("telegramEnabled").checked,
+        telegram_bot_token: document.getElementById("telegramBotToken").value.trim(),
+        telegram_chat_id: document.getElementById("telegramChatId").value.trim(),
+        discord_enabled: document.getElementById("discordEnabled").checked,
+        discord_webhook_url: document.getElementById("discordWebhookUrl").value.trim(),
+        windows_notifications_enabled: document.getElementById("windowsNotificationsEnabled").checked,
+        sound_enabled: document.getElementById("soundEnabled").checked,
+        sound_file: document.getElementById("soundFile").value.trim(),
+        distill_token: document.getElementById("distillToken").value.trim(),
+      };
+    }
+
+    function renderSnippetCards(targets, container, statusElement, namespace) {
+      if (!targets.length) {
+        container.innerHTML = `<div class="card"><p>Keine Distill-Vorschau verfuegbar. Waehle mindestens einen Distill-faehigen Shop.</p></div>`;
+        return;
+      }
+      container.innerHTML = targets.map((target, index) => `
         <div class="card">
-          <div class="k">${escapeHtml(k)}</div>
-          <div class="v">${escapeHtml(v)}</div>
+          <div class="card-top">
+            <div>
+              <h3>${target.tracker_name} · ${target.shop_label}</h3>
+              <p>${target.url || "eigene URL im Shopprofil hinterlegen"}</p>
+            </div>
+            <button type="button" class="secondary" data-copy-snippet="${namespace}-${index}">Snippet kopieren</button>
+          </div>
+          <p>${target.note || ""}</p>
+          <div class="code" id="${namespace}-${index}">${target.snippet}</div>
         </div>
       `).join("");
-      document.getElementById("runtimePill").textContent = `Runtime: ${data.desktop.state}${data.desktop.paused ? " (paused)" : ""}`;
-    }
 
-    function renderRuntime(data) {
-      const webhookLabel = data.channels.webhook_enabled ? data.runtime.webhook_url : "deaktiviert (Simple Mode)";
-      const runtime = [
-        ["Control Center", data.runtime.control_center_url],
-        ["Webhook", webhookLabel],
-        ["Config", data.runtime.config_path],
-        ["Datenbank", data.runtime.database_path],
-        ["Gestartet", fmtDate(data.runtime.started_at)],
-        ["Letztes Event", fmtDate(data.summary.last_event_at)],
-      ];
-      document.getElementById("runtimeMeta").innerHTML = runtime.map(([k, v]) => `
-        <div class="kv-row"><span class="muted">${escapeHtml(k)}</span><span>${escapeHtml(v)}</span></div>
-      `).join("");
-      const channels = Object.entries(data.channels).map(([name, enabled]) => {
-        const cls = enabled ? "#2ed889" : "#ff6f6f";
-        return `<span class="chip"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:${cls};"></span>${escapeHtml(name)}</span>`;
-      }).join("");
-      document.getElementById("channelChips").innerHTML = channels;
-      document.getElementById("pauseResumeBtn").textContent = data.desktop.paused ? "Monitoring fortsetzen" : "Monitoring pausieren";
-    }
-
-    function renderSetupForm(data) {
-      const profile = data.profile || {};
-      document.getElementById("setupDisplayName").value = profile.display_name || "";
-      document.getElementById("setupSimpleMode").checked = profile.simple_mode !== false;
-      document.getElementById("setupAutostart").checked = !!profile.autostart_enabled;
-      document.getElementById("setupCloseToTray").checked = !!profile.close_to_tray;
-      document.getElementById("setupIntroEnabled").checked = profile.intro_enabled !== false;
-      document.getElementById("setupWebhookEnabled").checked = !!data.channels.webhook_enabled;
-      const options = (data.setup_options && data.setup_options.sources) ? data.setup_options.sources : [];
-      const selected = profile.preferred_source || "";
-      document.getElementById("setupStartSource").innerHTML = options.map((source) => `
-        <option value="${escapeHtml(source.name)}" ${source.name === selected ? "selected" : ""}>${escapeHtml(source.label)}${source.enabled ? " (aktiv)" : ""}</option>
-      `).join("");
-    }
-
-    function renderSettings(data) {
-      document.getElementById("refAge").value = data.app_settings.new_listing_reference_min_age_seconds;
-      document.getElementById("restockToggle").checked = !!data.app_settings.enable_restock_alerts;
-      document.getElementById("rtxExcludeCompletePcTerms").value = (data.app_settings.rtx_5070_ti_exclude_complete_pc_terms || []).join(", ");
-      document.getElementById("rtxExcludeNotebookTerms").value = (data.app_settings.rtx_5070_ti_exclude_notebook_terms || []).join(", ");
-      document.getElementById("rtxExcludeBundleTerms").value = (data.app_settings.rtx_5070_ti_exclude_bundle_terms || []).join(", ");
-      document.getElementById("rtxExcludeDefectTerms").value = (data.app_settings.rtx_5070_ti_exclude_defect_terms || []).join(", ");
-    }
-
-    function sourceStatusBadge(source) {
-      if (!source.enabled) return '<span class="badge">deaktiviert</span>';
-      if (source.consecutive_failures > 0) return '<span class="badge">Fehler aktiv</span>';
-      if (source.last_success_at) return '<span class="badge">gesund</span>';
-      return '<span class="badge">wartet</span>';
-    }
-    function renderSources(data) {
-      const root = document.getElementById("sourcesGrid");
-      const existingCards = new Map([...root.querySelectorAll(".source-card")].map((node) => [node.dataset.name, node]));
-      root.innerHTML = data.sources.map((source) => {
-        const preserve = state.dirtySources.has(source.name) && existingCards.has(source.name);
-        if (preserve) return existingCards.get(source.name).outerHTML;
-        return `
-          <article class="source-card" data-name="${escapeHtml(source.name)}">
-            <div class="source-head">
-              <div><strong>${escapeHtml(source.name)}</strong><div class="muted">${escapeHtml(source.shop)} • ${escapeHtml(source.type)}</div></div>
-              ${sourceStatusBadge(source)}
-            </div>
-            <a class="source-url" href="${escapeHtml(source.url || "#")}" target="_blank" rel="noreferrer">${escapeHtml(source.url || "keine URL")}</a>
-            <div class="source-runtime">
-              <div class="box"><strong>Polls</strong><div>${escapeHtml(source.total_polls)}</div></div>
-              <div class="box"><strong>Treffer</strong><div>${escapeHtml(source.last_observation_count)}</div></div>
-              <div class="box"><strong>Erfolg</strong><div>${escapeHtml(fmtDate(source.last_success_at))}</div></div>
-              <div class="box"><strong>Fehler</strong><div>${escapeHtml(source.last_error || "–")}</div></div>
-            </div>
-            <div class="field"><label>Intervall (Sek.)</label><input data-field="interval_seconds" type="number" min="5" step="1" value="${escapeHtml(source.interval_seconds)}"></div>
-            <div class="field"><label>Timeout (Sek.)</label><input data-field="timeout_seconds" type="number" min="5" step="1" value="${escapeHtml(source.timeout_seconds)}"></div>
-            <label class="check"><input data-field="enabled" type="checkbox" ${source.enabled ? "checked" : ""}> Quelle aktiv</label>
-            <div class="field"><label>Ausschlussbegriffe</label><textarea data-field="exclude_title_terms">${escapeHtml((source.exclude_title_terms || []).join(", "))}</textarea></div>
-            <div class="quick">
-              <button class="primary" data-action="save-source" data-name="${escapeHtml(source.name)}">Speichern</button>
-              <button data-action="reset-source" data-name="${escapeHtml(source.name)}">Reset</button>
-            </div>
-          </article>
-        `;
-      }).join("");
-      root.querySelectorAll(".source-card input, .source-card textarea").forEach((node) => {
-        node.addEventListener("input", (event) => {
-          const card = event.target.closest(".source-card");
-          if (!card) return;
-          state.dirtySources.add(card.dataset.name);
+      container.querySelectorAll("[data-copy-snippet]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const targetId = button.getAttribute("data-copy-snippet");
+          const content = document.getElementById(targetId)?.textContent || "";
+          await navigator.clipboard.writeText(content);
+          setStatus(statusElement, "Snippet in die Zwischenablage kopiert.", "ok");
         });
       });
     }
 
-    function renderDistillTargets(data) {
-      document.getElementById("distillTargets").innerHTML = data.distill_targets.map((target) => `
-        <article class="source-card">
-          <div class="source-head"><strong>${escapeHtml(target.name)}</strong><span class="badge">Distill</span></div>
-          <a class="source-url" href="${escapeHtml(target.url)}" target="_blank" rel="noreferrer">${escapeHtml(target.url)}</a>
-          <div class="muted">${escapeHtml(target.note)}</div>
-          <a class="btn" href="${escapeHtml(target.url)}" target="_blank" rel="noreferrer">Im Browser oeffnen</a>
-        </article>
+    function renderRuntime(data) {
+      const runtime = data.runtime || {};
+      const desktop = data.desktop || {};
+      const monitoringActive = !!desktop.monitoring_active;
+      els.controlCenterUrl.textContent = runtime.control_center_url || "Control Center";
+      els.webhookUrl.textContent = runtime.webhook_url || "Webhook";
+      const stats = [
+        ["Status", desktop.state || "running"],
+        ["Monitoring", monitoringActive ? "aktiv" : "gestoppt"],
+        ["Uptime", `${runtime.uptime_seconds || 0}s`],
+        ["Tracker", String((data.trackers || []).length)],
+        ["Quellen", String((data.sources || []).length)],
+        ["Events", String((data.summary || {}).events_count || 0)],
+        ["Angebote", String((data.summary || {}).offers_count || 0)],
+      ];
+      els.runtimeStats.innerHTML = stats.map(([label, value]) => `
+        <div class="stat">
+          <div class="label">${label}</div>
+          <div class="value">${value}</div>
+        </div>
       `).join("");
+      document.getElementById("startButton").disabled = monitoringActive;
+      document.getElementById("stopButton").disabled = !monitoringActive;
     }
 
-    function renderEvents(data) {
-      const rows = data.events.map((event) => `
-        <tr>
-          <td>${escapeHtml(fmtDate(event.timestamp))}</td>
-          <td><span class="event-type">${escapeHtml(event.event_type)}</span></td>
-          <td>${escapeHtml(event.shop)}</td>
-          <td><a class="source-url" href="${escapeHtml(event.offer_url)}" target="_blank" rel="noreferrer">${escapeHtml(event.title)}</a></td>
-          <td>${escapeHtml(event.old_price ? `${fmtMoney(event.old_price, event.currency)} -> ${fmtMoney(event.new_price, event.currency)}` : fmtMoney(event.new_price, event.currency))}</td>
-        </tr>
-      `).join("");
-      document.getElementById("eventsTable").innerHTML = rows || '<tr><td colspan="5" class="muted">Noch keine Events.</td></tr>';
-    }
-    function renderOffers(data) {
-      const rows = data.offers.map((offer) => `
-        <tr>
-          <td>${escapeHtml(offer.shop)}</td>
-          <td><a class="source-url" href="${escapeHtml(offer.offer_url)}" target="_blank" rel="noreferrer">${escapeHtml(offer.last_seen_title)}</a></td>
-          <td>${escapeHtml(fmtMoney(offer.last_seen_price))}</td>
-          <td>${escapeHtml(offer.last_seen_stock === null ? "–" : (offer.last_seen_stock ? "in stock" : "out of stock"))}</td>
-          <td>${escapeHtml(fmtDate(offer.last_seen_at))}</td>
-        </tr>
-      `).join("");
-      document.getElementById("offersTable").innerHTML = rows || '<tr><td colspan="5" class="muted">Noch keine Offers.</td></tr>';
+    function fillSettings(data) {
+      const profile = data.profile || {};
+      const settings = data.settings || {};
+      const notifications = settings.notifications || {};
+      const telegram = notifications.telegram || {};
+      const discord = notifications.discord || {};
+      const windows = notifications.windows || {};
+      const sound = notifications.sound || {};
+      const distill = (settings.integrations || {}).distill || {};
+
+      document.getElementById("displayName").value = profile.display_name || "";
+      document.getElementById("simpleMode").checked = !!profile.simple_mode;
+      document.getElementById("closeToTray").checked = !!profile.close_to_tray;
+      document.getElementById("autostartEnabled").checked = !!profile.autostart_enabled;
+      document.getElementById("introEnabled").checked = !!profile.intro_enabled;
+      document.getElementById("telegramEnabled").checked = !!telegram.enabled;
+      document.getElementById("telegramBotToken").value = telegram.bot_token || "";
+      document.getElementById("telegramChatId").value = telegram.chat_id || "";
+      document.getElementById("discordEnabled").checked = !!discord.enabled;
+      document.getElementById("discordWebhookUrl").value = discord.webhook_url || "";
+      document.getElementById("distillEnabled").checked = !!distill.enabled;
+      document.getElementById("distillToken").value = distill.token || "";
+      document.getElementById("windowsNotificationsEnabled").checked = !!windows.enabled;
+      document.getElementById("soundEnabled").checked = !!sound.enabled;
+      document.getElementById("soundFile").value = sound.sound_file || "";
+      document.getElementById("enableRestockAlerts").checked = !!(data.app_settings || {}).enable_restock_alerts;
+      document.getElementById("newListingAge").value = (data.app_settings || {}).new_listing_reference_min_age_seconds ?? 60;
     }
 
-    async function saveSource(name) {
-      const card = document.querySelector(`.source-card[data-name="${CSS.escape(name)}"]`);
-      if (!card) return;
-      const payload = {
-        enabled: card.querySelector('[data-field="enabled"]').checked,
-        interval_seconds: Number(card.querySelector('[data-field="interval_seconds"]').value || 0),
-        timeout_seconds: Number(card.querySelector('[data-field="timeout_seconds"]').value || 0),
-        exclude_title_terms: card.querySelector('[data-field="exclude_title_terms"]').value,
-      };
-      await request(api.source(name), { method: "POST", body: JSON.stringify(payload) });
-      state.dirtySources.delete(name);
-      showToast(`Quelle ${name} gespeichert.`);
-      await loadState();
-    }
-    async function saveSettings(event) {
-      event.preventDefault();
-      const payload = {
-        enable_restock_alerts: document.getElementById("restockToggle").checked,
-        new_listing_reference_min_age_seconds: Number(document.getElementById("refAge").value || 0),
-        rtx_5070_ti_exclude_complete_pc_terms: document.getElementById("rtxExcludeCompletePcTerms").value,
-        rtx_5070_ti_exclude_notebook_terms: document.getElementById("rtxExcludeNotebookTerms").value,
-        rtx_5070_ti_exclude_bundle_terms: document.getElementById("rtxExcludeBundleTerms").value,
-        rtx_5070_ti_exclude_defect_terms: document.getElementById("rtxExcludeDefectTerms").value,
-      };
-      await request(api.settings, { method: "POST", body: JSON.stringify(payload) });
-      showToast("Globale Einstellungen gespeichert.");
-      await loadState();
-    }
-    async function saveOnboarding(event) {
-      event.preventDefault();
-      const payload = {
-        display_name: document.getElementById("setupDisplayName").value.trim(),
-        start_source: document.getElementById("setupStartSource").value,
-        autostart_enabled: document.getElementById("setupAutostart").checked,
-        simple_mode: document.getElementById("setupSimpleMode").checked,
-        close_to_tray: document.getElementById("setupCloseToTray").checked,
-        intro_enabled: document.getElementById("setupIntroEnabled").checked,
-        webhook_enabled: document.getElementById("setupWebhookEnabled").checked,
-      };
-      await request(api.onboarding, { method: "POST", body: JSON.stringify(payload) });
-      showToast("Setup gespeichert.");
-      await loadState();
-    }
-    async function sendRuntimeCommand(command) {
-      await request(api.runtimeCommand, { method: "POST", body: JSON.stringify({ command }) });
-      await loadState();
-    }
-    async function rollbackMigration() {
-      const response = await request(api.migrationRollback, { method: "POST", body: JSON.stringify({}) });
-      if (!response.ok) throw new Error("Rollback nicht verfuegbar.");
-      showToast("Backup wiederhergestellt. Runtime neu starten.");
-      await loadState();
-    }
-    async function sendTestAlert(preset) {
-      await request(api.test, { method: "POST", body: JSON.stringify({ preset }) });
-      showToast(`Test-Alert gesendet: ${preset}`);
-    }
-
-    async function loadState() {
-      const data = await request(api.state);
-      state.data = data;
-      renderStats(data);
-      renderRuntime(data);
-      renderSetupForm(data);
-      renderSettings(data);
-      renderSources(data);
-      renderDistillTargets(data);
-      renderEvents(data);
-      renderOffers(data);
-      if (!state.introInitialized) {
-        initIntroOverlay(data.profile);
-        state.introInitialized = true;
-      }
-      if (data.profile && !data.profile.onboarding_completed) {
-        switchView("setup");
-      }
-    }
-
-    document.querySelectorAll("[data-view-target]").forEach((button) => {
-      button.addEventListener("click", () => switchView(button.getAttribute("data-view-target")));
-    });
-    document.getElementById("refreshBtn").addEventListener("click", loadState);
-    document.getElementById("pauseResumeBtn").addEventListener("click", () => {
-      const command = state.data && state.data.desktop && state.data.desktop.paused ? "resume" : "pause";
-      sendRuntimeCommand(command).catch((error) => showToast(error.message, true));
-    });
-    document.getElementById("restartRuntimeBtn").addEventListener("click", () => {
-      sendRuntimeCommand("restart").catch((error) => showToast(error.message, true));
-    });
-    document.getElementById("setupForm").addEventListener("submit", (event) => {
-      saveOnboarding(event).catch((error) => showToast(error.message, true));
-    });
-    document.getElementById("settingsForm").addEventListener("submit", (event) => {
-      saveSettings(event).catch((error) => showToast(error.message, true));
-    });
-    document.getElementById("rollbackConfigBtn").addEventListener("click", () => {
-      rollbackMigration().catch((error) => showToast(error.message, true));
-    });
-    document.body.addEventListener("click", (event) => {
-      const preset = event.target.getAttribute("data-preset");
-      if (preset) {
-        sendTestAlert(preset).catch((error) => showToast(error.message, true));
+    function renderTrackers(data) {
+      const trackers = data.trackers || [];
+      if (!trackers.length) {
+        els.trackerCards.innerHTML = `<div class="card"><p>Noch keine Tracker angelegt.</p></div>`;
         return;
       }
-      const action = event.target.getAttribute("data-action");
-      const name = event.target.getAttribute("data-name");
-      if (action === "save-source" && name) {
-        saveSource(name).catch((error) => showToast(error.message, true));
+      els.trackerCards.innerHTML = trackers.map((tracker) => `
+        <div class="card">
+          <div class="card-top">
+            <div>
+              <h3>${tracker.name}</h3>
+              <p>${tracker.query}</p>
+            </div>
+            <div class="button-row">
+              <span class="badge">${tracker.enabled ? "aktiv" : "deaktiviert"}</span>
+              <button type="button" class="secondary" data-delete-tracker="${tracker.id}">Loeschen</button>
+            </div>
+          </div>
+          <div class="inline-list">
+            ${(tracker.filters.include_terms || []).map((term) => `<span class="badge">+ ${term}</span>`).join("")}
+            ${(tracker.filters.exclude_terms || []).map((term) => `<span class="badge">- ${term}</span>`).join("")}
+          </div>
+          <p>Shops: ${(tracker.shops || []).map((shop) => `${shop.shop_id}${shop.enabled ? "" : " (off)"}`).join(", ") || "-"}</p>
+        </div>
+      `).join("");
+
+      document.querySelectorAll("[data-delete-tracker]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const trackerId = button.getAttribute("data-delete-tracker");
+          try {
+            const result = await request(api.tracker(trackerId), { method: "POST", body: JSON.stringify({ delete: true }) });
+            if (result.restart_required) {
+              await refreshStateWithRecovery(
+                els.trackerStatus,
+                "Tracker geloescht. Monitoring wird neu gestartet.",
+                "Tracker geloescht."
+              );
+            } else {
+              setStatus(els.trackerStatus, "Tracker geloescht.", "ok");
+              await refreshState();
+            }
+          } catch (error) {
+            setStatus(els.trackerStatus, error.message, "error");
+          }
+        });
+      });
+    }
+
+    function renderSources(data) {
+      const sources = data.sources || [];
+      if (!sources.length) {
+        els.sourceTable.innerHTML = `<div class="source-row"><p>Keine aktiven Runtime-Sources vorhanden.</p></div>`;
+        return;
       }
-      if (action === "reset-source" && name) {
-        state.dirtySources.delete(name);
-        loadState().catch((error) => showToast(error.message, true));
+      els.sourceTable.innerHTML = sources.map((source) => `
+        <div class="source-row">
+          <div class="source-top">
+            <div>
+              <h3>${source.tracker_name || source.name}</h3>
+              <p>${source.shop} / ${source.type} / ${source.url || "ohne URL"}</p>
+            </div>
+            <label class="checkbox">
+              <input type="checkbox" data-source-toggle="${source.name}" ${source.enabled ? "checked" : ""}>
+              <span>aktiv</span>
+            </label>
+          </div>
+          <div class="meta">Intervall: ${source.interval_seconds}s | Timeout: ${source.timeout_seconds}s | Letzter Fehler: ${source.last_error || "-"}</div>
+        </div>
+      `).join("");
+
+      document.querySelectorAll("[data-source-toggle]").forEach((input) => {
+        input.addEventListener("change", async () => {
+          try {
+            await request(api.source(input.getAttribute("data-source-toggle")), {
+              method: "POST",
+              body: JSON.stringify({ enabled: input.checked }),
+            });
+            await refreshState();
+          } catch (error) {
+            setStatus(els.settingsStatus, error.message, "error");
+          }
+        });
+      });
+    }
+
+    function renderDistill(data) {
+      renderSnippetCards(data.distill_targets || [], els.distillCards, els.settingsStatus, "live-snippet");
+    }
+
+    function renderShopOptions(data) {
+      const shops = (data.setup_options || {}).shops || [];
+      els.onboardingShopOptions.innerHTML = shopSelectorMarkup("onboarding", shops, selectedShopIds("onboarding"));
+      els.trackerShopOptions.innerHTML = shopSelectorMarkup("tracker", shops, selectedShopIds("tracker"));
+    }
+
+    function renderOverlay(data) {
+      const profile = data.profile || {};
+      const visible = !profile.onboarding_completed;
+      els.introOverlay.classList.toggle("visible", visible);
+      if (!visible) {
+        overlayHydrated = false;
+        setWizardStep(0);
+        return;
+      }
+      if (overlayHydrated) {
+        return;
+      }
+      document.getElementById("onboardingDisplayName").value = profile.display_name || "";
+      document.getElementById("onboardingSimpleMode").checked = profile.simple_mode !== false;
+      document.getElementById("onboardingAutostart").checked = !!profile.autostart_enabled;
+      document.getElementById("onboardingCloseToTray").checked = !!profile.close_to_tray;
+      document.getElementById("onboardingDistillToken").value = (((data.settings || {}).integrations || {}).distill || {}).token || "";
+      document.getElementById("onboardingTelegramToken").value = (((data.settings || {}).notifications || {}).telegram || {}).bot_token || "";
+      document.getElementById("onboardingTelegramChat").value = (((data.settings || {}).notifications || {}).telegram || {}).chat_id || "";
+      document.getElementById("onboardingDiscordWebhook").value = (((data.settings || {}).notifications || {}).discord || {}).webhook_url || "";
+      overlayHydrated = true;
+      setWizardStep(0);
+    }
+
+    async function refreshOnboardingPreview() {
+      const tracker = buildTrackerPayload("onboarding");
+      const result = await request(api.distillPreview, {
+        method: "POST",
+        body: JSON.stringify({
+          ...tracker,
+          distill_token: document.getElementById("onboardingDistillToken").value.trim(),
+        }),
+      });
+      renderSnippetCards(result.targets || [], els.onboardingPreviewCards, els.onboardingStatus, "wizard-snippet");
+      if ((result.targets || []).length) {
+        setStatus(els.onboardingStatus, "Distill-Vorschau aktualisiert.", "ok");
+      } else {
+        setStatus(els.onboardingStatus, "Keine Distill-faehigen Shops im aktuellen Tracker-Entwurf.", "");
+      }
+    }
+
+    async function runNotificationTest(mode, channels, statusElement) {
+      const payload = {
+        ...buildNotificationPayload(mode),
+        channels,
+      };
+      const result = await request(api.notificationTest, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      setStatus(statusElement, result.message, result.ok ? "ok" : "error");
+      return result;
+    }
+
+    async function refreshState() {
+      currentState = await request(api.state);
+      clearReconnectExpectation();
+      renderRuntime(currentState);
+      if (!formHasFocus("settingsForm")) {
+        fillSettings(currentState);
+      }
+      renderShopOptions(currentState);
+      renderTrackers(currentState);
+      renderSources(currentState);
+      renderDistill(currentState);
+      renderOverlay(currentState);
+    }
+
+    async function refreshStateWithRecovery(statusElement, pendingMessage, successMessage) {
+      expectReconnect();
+      setStatus(statusElement, pendingMessage, "ok");
+      let lastError = null;
+      while (reconnectExpected()) {
+        try {
+          await refreshState();
+          if (successMessage) {
+            setStatus(statusElement, successMessage, "ok");
+          }
+          return;
+        } catch (error) {
+          lastError = error;
+          if (!reconnectExpected()) {
+            break;
+          }
+          setStatus(statusElement, "Control Center verbindet sich neu...", "");
+          await sleep(RECONNECT_RETRY_MS);
+        }
+      }
+      clearReconnectExpectation();
+      throw lastError || new Error("control_center_reconnect_timeout");
+    }
+
+    async function refreshStateSilently() {
+      try {
+        await refreshState();
+      } catch (error) {
+        if (reconnectExpected()) {
+          return;
+        }
+        throw error;
+      }
+    }
+
+    document.getElementById("settingsForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        const payload = {
+          display_name: document.getElementById("displayName").value,
+          simple_mode: document.getElementById("simpleMode").checked,
+          close_to_tray: document.getElementById("closeToTray").checked,
+          autostart_enabled: document.getElementById("autostartEnabled").checked,
+          intro_enabled: document.getElementById("introEnabled").checked,
+          telegram_enabled: document.getElementById("telegramEnabled").checked,
+          telegram_bot_token: document.getElementById("telegramBotToken").value,
+          telegram_chat_id: document.getElementById("telegramChatId").value,
+          discord_enabled: document.getElementById("discordEnabled").checked,
+          discord_webhook_url: document.getElementById("discordWebhookUrl").value,
+          distill_enabled: document.getElementById("distillEnabled").checked,
+          distill_token: document.getElementById("distillToken").value,
+          windows_notifications_enabled: document.getElementById("windowsNotificationsEnabled").checked,
+          sound_enabled: document.getElementById("soundEnabled").checked,
+          sound_file: document.getElementById("soundFile").value,
+          enable_restock_alerts: document.getElementById("enableRestockAlerts").checked,
+          new_listing_reference_min_age_seconds: Number(document.getElementById("newListingAge").value || 60),
+        };
+        const result = await request(api.settings, { method: "POST", body: JSON.stringify(payload) });
+        if (result.restart_required) {
+          await refreshStateWithRecovery(
+            els.settingsStatus,
+            "Gespeichert. Monitoring wird neu gestartet.",
+            "Gespeichert."
+          );
+        } else {
+          setStatus(els.settingsStatus, "Gespeichert.", "ok");
+          await refreshState();
+        }
+      } catch (error) {
+        setStatus(els.settingsStatus, error.message, "error");
       }
     });
 
-    loadState().catch((error) => showToast(error.message, true));
-    setInterval(() => { loadState().catch(() => {}); }, 5000);
+    document.getElementById("trackerForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        const payload = buildTrackerPayload("tracker");
+        const result = await request(api.trackers, { method: "POST", body: JSON.stringify(payload) });
+        event.target.reset();
+        if (result.restart_required) {
+          await refreshStateWithRecovery(
+            els.trackerStatus,
+            "Tracker angelegt. Monitoring wird neu gestartet.",
+            "Tracker angelegt."
+          );
+        } else {
+          setStatus(els.trackerStatus, "Tracker angelegt.", "ok");
+          await refreshState();
+        }
+      } catch (error) {
+        setStatus(els.trackerStatus, error.message, "error");
+      }
+    });
+
+    document.getElementById("onboardingForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      try {
+        const payload = {
+          ...buildNotificationPayload("onboarding"),
+          display_name: document.getElementById("onboardingDisplayName").value,
+          simple_mode: document.getElementById("onboardingSimpleMode").checked,
+          autostart_enabled: document.getElementById("onboardingAutostart").checked,
+          close_to_tray: document.getElementById("onboardingCloseToTray").checked,
+          intro_enabled: false,
+          distill_enabled: !!document.getElementById("onboardingDistillToken").value.trim(),
+          first_tracker: buildTrackerPayload("onboarding"),
+        };
+        const result = await request(api.onboarding, { method: "POST", body: JSON.stringify(payload) });
+        overlayHydrated = false;
+        if (result.restart_required) {
+          await refreshStateWithRecovery(
+            els.onboardingStatus,
+            "Setup gespeichert. Monitoring wird neu gestartet.",
+            "Setup gespeichert."
+          );
+        } else {
+          setStatus(els.onboardingStatus, "Setup gespeichert.", "ok");
+          await refreshState();
+        }
+      } catch (error) {
+        setStatus(els.onboardingStatus, error.message, "error");
+      }
+    });
+
+    document.getElementById("testAlertButton").addEventListener("click", async () => {
+      try {
+        const result = await request(api.test, { method: "POST", body: JSON.stringify({ preset: "price_drop" }) });
+        setStatus(els.settingsStatus, result.message, "ok");
+      } catch (error) {
+        setStatus(els.settingsStatus, error.message, "error");
+      }
+    });
+
+    document.getElementById("testTelegramButton").addEventListener("click", async () => {
+      try {
+        await runNotificationTest("settings", ["telegram"], els.settingsStatus);
+      } catch (error) {
+        setStatus(els.settingsStatus, error.message, "error");
+      }
+    });
+    document.getElementById("testDiscordButton").addEventListener("click", async () => {
+      try {
+        await runNotificationTest("settings", ["discord"], els.settingsStatus);
+      } catch (error) {
+        setStatus(els.settingsStatus, error.message, "error");
+      }
+    });
+    document.getElementById("testAllNotificationsButton").addEventListener("click", async () => {
+      try {
+        await runNotificationTest("settings", ["telegram", "discord", "windows", "sound"], els.settingsStatus);
+      } catch (error) {
+        setStatus(els.settingsStatus, error.message, "error");
+      }
+    });
+
+    document.getElementById("onboardingTestTelegramButton").addEventListener("click", async () => {
+      try {
+        await runNotificationTest("onboarding", ["telegram"], els.onboardingStatus);
+      } catch (error) {
+        setStatus(els.onboardingStatus, error.message, "error");
+      }
+    });
+    document.getElementById("onboardingTestDiscordButton").addEventListener("click", async () => {
+      try {
+        await runNotificationTest("onboarding", ["discord"], els.onboardingStatus);
+      } catch (error) {
+        setStatus(els.onboardingStatus, error.message, "error");
+      }
+    });
+    document.getElementById("onboardingTestAllButton").addEventListener("click", async () => {
+      try {
+        await runNotificationTest("onboarding", ["telegram", "discord"], els.onboardingStatus);
+      } catch (error) {
+        setStatus(els.onboardingStatus, error.message, "error");
+      }
+    });
+
+    document.getElementById("startButton").addEventListener("click", async () => {
+      try {
+        await request(api.runtimeCommand, { method: "POST", body: JSON.stringify({ command: "start" }) });
+        setStatus(els.settingsStatus, "Monitoring gestartet.", "ok");
+        await refreshState();
+      } catch (error) {
+        setStatus(els.settingsStatus, error.message, "error");
+      }
+    });
+    document.getElementById("stopButton").addEventListener("click", async () => {
+      try {
+        await request(api.runtimeCommand, { method: "POST", body: JSON.stringify({ command: "stop" }) });
+        setStatus(els.settingsStatus, "Monitoring gestoppt. Control Center bleibt aktiv.", "ok");
+        await refreshState();
+      } catch (error) {
+        setStatus(els.settingsStatus, error.message, "error");
+      }
+    });
+    document.getElementById("restartButton").addEventListener("click", async () => {
+      try {
+        await request(api.runtimeCommand, { method: "POST", body: JSON.stringify({ command: "restart" }) });
+        await refreshStateWithRecovery(
+          els.settingsStatus,
+          "Monitoring wird neu gestartet.",
+          "Monitoring wieder verbunden."
+        );
+      } catch (error) {
+        setStatus(els.settingsStatus, error.message, "error");
+      }
+    });
+
+    document.getElementById("onboardingWelcomeNext").addEventListener("click", () => setWizardStep(1));
+    document.getElementById("onboardingNotificationsBack").addEventListener("click", () => setWizardStep(0));
+    document.getElementById("onboardingNotificationsNext").addEventListener("click", () => setWizardStep(2));
+    document.getElementById("onboardingTrackerBack").addEventListener("click", () => setWizardStep(1));
+    document.getElementById("onboardingTrackerNext").addEventListener("click", async () => {
+      const tracker = buildTrackerPayload("onboarding");
+      if (!tracker.name) {
+        setStatus(els.onboardingStatus, "Bitte zuerst einen Produktnamen fuer den ersten Tracker angeben.", "error");
+        return;
+      }
+      if (!tracker.shops.length) {
+        setStatus(els.onboardingStatus, "Bitte mindestens einen Shop fuer den ersten Tracker auswaehlen.", "error");
+        return;
+      }
+      setWizardStep(3);
+    });
+    document.getElementById("onboardingPreviewBack").addEventListener("click", () => setWizardStep(2));
+    document.getElementById("onboardingPreviewRefresh").addEventListener("click", async () => {
+      try {
+        await refreshOnboardingPreview();
+      } catch (error) {
+        setStatus(els.onboardingStatus, error.message, "error");
+      }
+    });
+
+    refreshState().catch((error) => {
+      setStatus(els.settingsStatus, error.message, "error");
+    });
+    setInterval(() => {
+      refreshStateSilently().catch((error) => {
+        setStatus(els.settingsStatus, error.message, "error");
+      });
+    }, 10000);
   </script>
 </body>
 </html>

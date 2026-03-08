@@ -46,7 +46,7 @@ def ensure_monitor_config_state(
 ) -> MonitorConfigState:
     state_file = Path(state_path)
     if state_file.exists():
-        return MonitorConfigState.from_dict(json.loads(state_file.read_text(encoding="utf-8")))
+        return MonitorConfigState.from_dict(json.loads(state_file.read_text(encoding="utf-8-sig")))
 
     config_file = Path(monitor_config_path)
     config_file.parent.mkdir(parents=True, exist_ok=True)
@@ -71,7 +71,7 @@ def rollback_monitor_config(state_path: str | Path) -> bool:
     state_file = Path(state_path)
     if not state_file.exists():
         return False
-    state = MonitorConfigState.from_dict(json.loads(state_file.read_text(encoding="utf-8")))
+    state = MonitorConfigState.from_dict(json.loads(state_file.read_text(encoding="utf-8-sig")))
     if not state.backup_path:
         return False
     backup = Path(state.backup_path)
